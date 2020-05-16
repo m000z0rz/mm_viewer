@@ -1,28 +1,22 @@
-console.log("ga");
+const types = makeshift_require("./Scripts/mm/definitions/types.js");
 
 const globals = [
-  {
-      "name": "actorCutscenesGlobalCtxt",
-      "offset": 0x801BD8C0,
-      "typeName": "GlobalContext*",
-      "type": {
-        "name": "*",
-        "pointsTo": "GlobalContext",
-      },
+    {
+        "name": "actorCutscenesGlobalCtxt",
+        "offset": 0x801BD8C0,
+        "typeName": "GlobalContext*",
     }
 ];
 
 const global_variables = {
-  "byName": {},
-  "byOffset": {},
+    "byName": {},
+    "byOffset": {},
 };
 
-console.log("gb");
 globals.forEach(function(glo) {
-  global_variables.byName[glo.name] = glo;
-  global_variables.byOffset[glo.offset] = glo;
+    global_variables.byName[glo.name] = glo;
+    global_variables.byOffset[glo.offset] = glo;
+    glo.type = function() { return types.getType(glo.typeName); };
 });
 
-modules.exports = global_variables;
-
-console.log("gc");
+module.exports = global_variables;
