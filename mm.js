@@ -38,7 +38,7 @@ var makeshift_require = (function() {
 // const global_variables = make_global_variables(types);
 const types = makeshift_require("./Scripts/mm/definitions/types.js");
 const global_variables = makeshift_require("./Scripts/mm/definitions/global_variables.js");
-
+const http = makeshift_require("./Scripts/mm/http.js");
 
 
 //const v = valueAt(0x801BD8C0, types.getType("GlobalContext*"));
@@ -66,7 +66,7 @@ server.on('connection', function(client)
 	client.on('data', function(data)
 	{
 		try {
-			const request = parseHttpRequest(data.toString());
+			const request = http.parseHttpRequest(data.toString());
 			processGetRequest(client, request);
 		}
 		catch (ex) {
@@ -83,62 +83,34 @@ function processGetRequest(client, request)
 	if (path === "/" )
 	{
 		console.log("index");
-
-		var buffer = fs.readFile("./Scripts/mm/index.html");
-		client.write(
-			"HTTP/1.1 200 OK\r\n"
-			+ "Content-type: text/html\r\n"
-			+ "Access-Control-Allow-Origin: *\r\n"
-			+ "Content-length: " + buffer.length + "\r\n"
-			+ "\r\n"
-			+ buffer.toString()
-			,function () {
-
-			}
-		);
-
-		client.write(buffer);
+		http.fileResponse(client, "./Scripts/mm/index.html");
 		console.log("index done");
 	}
 	else if (path === "/test")
 	{
-		//console.log("process request with path ", path, " and headers ", headers);
-		var obj = getData();
-		respondWithJSON(client, obj);
+		http.jsonResponse(client, getData());
 	}
 	else if (path.indexOf("/v/") === 0)
 	{
-		const uriParts = parseURIParams(path.slice(3));
+		const uriParts = http.parseURIParams(path.slice(3));
 		var obj2 = getDataFromPath(uriParts.path, uriParts.params);
 
-		console.log("v path obj", obj2);
-		respondWithJSON(client, obj2);
+		//console.log("v path obj", obj2);
+		http.jsonResponse(client, obj2);
 	}
-
-}
-
-// path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
-function parseURIParams(path)
-{
-	path = decodeURIComponent(path);
-	const paramStart = path.indexOf("?");
-	const params = {};
-	if (paramStart !== -1)
+	else if (path.indexOf("/static/") === 0)
 	{
-		path = path.substr(0, paramStart);
-
-		const paramAssignments = path.substr(paramStart + 1).split("&");
-		paramAssignments.forEach(function(assignment) {
-			const equals = assignment.indexOf("=");
-			params[assignment.substr(0, equals)] = params[assignment.substr(equals + 1)];
-		})
+		console.log("static");
+		http.fileResponse(client, "./Scripts/mm/static/" + path.substr("/static/".length));
+		console.log("static done");
+	}
+	else
+	{
+		http.httpResponse(client, "404", "text/plain", 404);
 	}
 
-	return {
-		"path": path,
-		"params": params
-	};
 }
+
 
 // path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
 // path is array of locations, params is any extra ?a=b junk
@@ -205,6 +177,7 @@ function getDataFromPath(path, params)
 		}
 	});
 
+	//return [offset, type];
 	// offset should now point to the thing we want, and type should be the appropriate type
 	return valueAt(offset, type);
 }
@@ -315,94 +288,12 @@ function asType(buffer, type, address)
 
 // ************************* UTIL ******************************
 
-function objectFromEntries(entries)
-{
-	var obj = {};
-	entries.forEach(function(entry) { obj[entry[0]] = entry[1]; });
-	return obj;
-}
 
 
 
 
 
 
-
-
-
-
-
-// ************************* HTTP ****************************
-
-function respondWithJSON(client, object)
-{
-	var str = JSON.stringify(object);
-	client.write(
-		"HTTP/1.1 200 OK\r\n"
-			+ "Content-type: application/json\r\n"
-			+ "Access-Control-Allow-Origin: *\r\n"
-			+ "Content-length: " + str.length + "\r\n"
-			+ "\r\n"
-			+ str
-		,function () {
-			// finished write
-		}
-	);
-}
-
-function parseHttpRequest(data)
-{
-	// expect data is buffer
-	var prev = 0;
-	var i = 0;
-	i = data.indexOf(" ");
-	const method = data.slice(prev, i).toString();
-	prev = i + 1;
-
-	if (method !== "GET")
-	{
-		console.log("Fail to handle non-GET request " + method);
-		return undefined;
-	}
-
-	i = data.indexOf(" ", prev);
-	const path = data.slice(prev, i).toString();
-	prev = i + 1;
-
-	i = data.indexOf("\n", prev);
-	prev = i + 1;
-
-	headersText = data.slice(prev).toString();
-
-	const headers = parseHeaders(headersText);
-
-	return {
-		path: path,
-		headers: headers
-	};
-}
-
-function parseHeaders(headersText)
-{
-	var headerLines = headersText.split("\n");
-	return objectFromEntries(
-		headerLines
-			.filter(function(l) { return l.trim() !== ""; })
-			.map(function(l) { return parseHeader(l); })
-			.filter(function(l) { return l !== undefined; })
-	);
-}
-
-function parseHeader(headerLine)
-{
-	const i = headerLine.indexOf(": ");
-	if (i === -1)
-	{
-		return undefined;
-	}
-
-	return [headerLine.substr(0, i), headerLine.substr(i + 2)];
-}
 
 
 
