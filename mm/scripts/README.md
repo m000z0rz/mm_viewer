@@ -1,0 +1,2 @@
+# scripts
+This folder contains scripts used to generate files for the MM viewer off of the Majora's Mask decomp repository (https://github.com/zeldaret/mm) and scrape some useful data from Cloud Modding
