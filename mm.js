@@ -1,70 +1,10 @@
+// This is the main script to place in Proejct64's Scripts directory
+
+const global_variable_definitions = require("./Scripts/mm/definitions/global_variables.js");
+const struct_definitions = require("./Scripts/mm/definitions/types.js");
+
+
 var server = new Server({port: 7777});
-
-// const variables = {
-// 	"actorCutscenesGlobalCtxt": {
-// 		"typestr": "GlobalContext*",
-// 		"type": "pointer",
-// 		"pointerType": "GlobalContext"
-// 		"offset": 0x801BD8C0
-// 	}
-// }
-
-// const structs = {
-// 	"GlobalContext": {
-// 		"fields": {
-// 			"cameraCtx": {
-// 				"type": "CameraContext",
-// 				"offset": 0x0020
-// 			},
-// 			"actorCtx": {
-// 				"type": "ActorContext",
-// 				"offset": 0x01CA0
-// 			}
-// 		}
-// 	},
-// 	"ActorContext": {
-// 		"fields": {
-// 			"actorList": {
-// 				"typestr": "ActorListEntry[12]",
-// 				"type": "array",
-// 				"arrayOf": "ActorListEntry",
-// 				"offset": 0x010
-// 			}
-// 		}
-// 	},
-// 	"ActorListEntry": {
-// 		"fields": {
-// 			"length": {
-// 				"type": "s32",
-// 				"offset": 0x0
-// 			},
-// 			"first": {
-// 				"type": "pointer",
-// 				"pointerType": "Actor"
-// 			},
-// 			"pad8": {
-// 				"type": "array",
-// 				"arrayOf": "UNK_TYPE1",
-// 				"offset": 0x8
-// 			}
-// 		}
-// 	},
-// 	"Actor": {
-// 		"fields": {
-// 			"id": {
-// 				"type": "s16",
-// 				"offset": 0x000
-// 			},
-// 			"type": {
-// 				"type": "u8",
-// 				"offset": 0x002
-// 			}
-// 		}
-// 	}
-// 	"s32": {
-// 		// atomic!
-// 	}
-// }
 
 server.on('connection', function(client)
 {
@@ -112,7 +52,64 @@ function processGetRequest(client, request)
 		var obj = getData();
 		respondWithJSON(client, obj);
 	}
+	else if (path.startsWith("/v/"))
+	{
+		// variable json path
+		getDataPath(path.slice(3));
+	}
 
+}
+
+// path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
+function processVariableJsonRequest(client, path)
+{
+
+}
+
+function valueAt(address, type)
+{
+	const buffer = mem.getBlock(address, type.size);
+	return asType(buffer, type);
+}
+
+const basic_type_reads = {
+	"u8": "getUint8",
+	"s8": "getInt8",
+	"u16": "getUint16",
+	"s16": "getInt16",
+	"u32": "getUint32",
+	"s32": "getInt32",
+	"f32": "getFloat32",
+	"*": "u32"
+};
+
+function asType(buffer, type)
+{
+
+	// add special handling for char* ehre, assuming it's null string
+
+
+	const reader = basic_type_reads[type.name];
+	if (reader !== undefined)
+	{
+		const dv = new DataView(buffer);
+		return dv[reader]();
+	}
+	else {
+
+		// else, it's a struct
+		const struct = structs[type.name];
+		const obj = {};
+
+		struct.fields.forEach(function(field) {
+			obj[field.name] = {
+				"value": asType(buffer.slice(field.offset, field.offset + field.type.size)),
+				"type": type.toString()
+			};
+		});
+
+		return obj;
+	}
 }
 
 

@@ -1,0 +1,17 @@
+- rearrange structs as types
+
+- show rotation
+- browse by names
+- convert from mm repository
+- drag to move
+- actor overlay details
+- set breakpoints
+  - and break on read/change
+- names from cloudmodding
+- set and save colors
+
+
+
+- debug in Project64 to make it break less
+
+
