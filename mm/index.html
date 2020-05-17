@@ -15,12 +15,154 @@
 	<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 	<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 
+	<style>
+		.full-vh {
+			max-height: calc(100vh - 4rem);
+			/*max-height: 100%;*/
+			overflow-y: auto;
+		}
+
+		#map {
+			order: 0;
+		}
+
+		#actorSidebar {
+			order: 1;
+			position: sticky;
+			border-left: 1px solid rgba(0,0,0,.1);
+		}
+	</style>
+
 	<title>MM</title>
 
 </head>
 <body>
-	<div id="main">
-		
+	<!-- Nav -->
+	<nav class="navbar navbar-expand-lg navbar-dark bg-dark stick-top">
+		<a href="#" class="navbar-brand">MM Viewer</a>
+		<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+			<div class="navbar-nav">
+				<a class="nav-item nav-link active" href="#">Actor Map</a>
+				<a class="nav-item nav-link" href="#">Data</a>
+				<a class="nav-item nav-link" href="#">Breakpoints <span class="badge badge-secondary">x</span></a>
+			</div>
+		</div>
+	</nav>
+
+	<div class="container-fluid">
+		<div class="row flex-xl-nowrap">
+			<!-- Map -->
+			<div id="map" class="col-md-7 col-xl-8 py-md-3 pl-md-5 full-vh">
+				<!-- d3 will put svg here -->
+			</div>
+
+			<!-- Sidebar -->
+			<div id="actorSidebar" class="col-md-5 col-xl-4 full-vh">
+				<div class="card" style="margin-top: 1rem;">
+					<div class="card-body">
+						<h5 class="card-title">Twisted Corpse of Deku Butler's Son</h5>
+						<h6 class="card-subtitle mb-2 text-muted">0x8040F3EC</h6>
+
+						<table class="table table-sm" style="font-size: 0.8rem;">
+<!--							<thead>-->
+<!--							<tr>-->
+<!--								<th scope="col"></th>-->
+<!--								<th scope="col">First</th>-->
+<!--								<th scope="col">Last</th>-->
+<!--								<th scope="col">Handle</th>-->
+<!--							</tr>-->
+<!--							</thead>-->
+							<tbody>
+							<tr>
+								<th scope="row">id</th>
+								<td>556 0x0289<div><small>(Twisted Corpse of Deku Butler's Son)</small></div></td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+							<tr>
+								<th scope="row">next</th>
+								<td><a href="#">0x8040CEF8</a> (Actor)</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+							<tr>
+								<th scope="row"><a href="#" style="font-size: 1.2rem;">-</a> currPosRot</th>
+								<td>(123.5, -3817.2, 4729)</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+
+							<tr>
+								<th scope="row" title="Vec3f">&nbsp;&nbsp;pos</th>
+								<td>(123.5, -3817.2, 4729)</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+
+							<tr>
+								<th scope="row" title="f32">&nbsp;&nbsp;&nbsp;&nbsp;x</th>
+								<td>123.5</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+							<tr>
+								<th scope="row">&nbsp;&nbsp;&nbsp;&nbsp;y</th>
+								<td>-3817.2</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+							<tr>
+								<th scope="row">&nbsp;&nbsp;&nbsp;&nbsp;z</th>
+								<td>4729</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+
+
+							<tr>
+								<th scope="row">&nbsp;&nbsp;rot</th>
+								<td>(123.5, -3817.2, 4729)</td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+
+							<tr>
+								<th scope="row" title="actor_func">actor_draw_func</th>
+								<td><a href="#">0x8040CEF8</a></td>
+								<td>o</td>
+								<td>x</td>
+								<td>c</td>
+							</tr>
+
+							</tbody>
+						</table>
+
+
+					</div>
+				</div>
+
+				<div class="card" style="margin-top: 1rem;">
+					<div class="card-body">
+						<h5 class="card-title">Actor 1</h5>
+						<h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6>
+						<p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+						<a href="#" class="card-link">Card link</a>
+						<a href="#" class="card-link">Another link</a>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
@@ -59,11 +201,11 @@
 		});
 
 		const width = 800, height = 600;
-		const svg = d3.select("#main")
+		const svg = d3.select("#map")
 			.append("svg") //create("svg")
 			.attr("viewBox", [0, 0, width, height])
-			.attr("width", width)
-			.attr("height", height)
+			.attr("width", "100%")
+			.attr("height", "auto")
 			;
 
 		const g = svg.append("g");
