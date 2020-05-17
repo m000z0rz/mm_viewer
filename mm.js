@@ -1,5 +1,8 @@
 // This is the main script to place in Proejct64's Scripts directory
 
+
+// **************************** Imports *******************************************
+
 // some setup is required in PJ64 source for Duktape to provide require
 // For now, we use a makeshift version
 var makeshift_require = (function () {
@@ -22,8 +25,7 @@ var makeshift_require = (function () {
             console.log("setting via exports");
             module_exports[path] = module.exports;
 
-        }
-        else {
+        } else {
             console.log("setting via val");
             module_exports[path] = val;
         }
@@ -33,37 +35,21 @@ var makeshift_require = (function () {
 })();
 
 
-// const types = make_types();
-// const global_variables = make_global_variables(types);
 const types = makeshift_require("./Scripts/mm/definitions/types.js");
 const global_variables = makeshift_require("./Scripts/mm/definitions/global_variables.js");
 const http = makeshift_require("./Scripts/mm/http.js");
 
 
-//const v = valueAt(0x801BD8C0, types.getType("GlobalContext*"));
-
-// console.log("v3");
-// const v3 = valueAt(v.value, types.getType("GlobalContext"));
-// console.log(JSON.stringify(v3));
-//
-// console.log("via path");
-// const v4 = getDataFromPath("actorCutscenesGlobalCtxt/actorCtx/actorList", {});
-// console.log(JSON.stringify(v4));
 
 
-// const uriParts = parseURIParams("actorCutscenesGlobalCtxt/actorCtx/actorList");
-// //var obj2 = getDataFromPath(uriParts.path, uriParts.params);
-// const v4 = getDataFromPath(uriParts.path, {});
-//  console.log(JSON.stringify(v4));
-//throw new Error("blah");
-
+// **************************** Server *******************************************
 var server = new Server({port: 7777});
 
 server.on('connection', function (client) {
     client.on('data', function (data) {
         try {
             const request = http.parseHttpRequest(data.toString());
-            processGetRequest(client, request);
+            routeRequest(client, request);
         } catch (ex) {
             console.log("exception ", ex);
         }
@@ -71,35 +57,116 @@ server.on('connection', function (client) {
 });
 console.log("Server running");
 
-function processGetRequest(client, request) {
-    const path = request.path;
-    //const headers = request.headers;
-    if (path === "/") {
-        //http.fileResponse(client, "./Scripts/mm/index.html");
-        templateResponse(client, "map", undefined);
-    } else if (path === "/map") {
-        http.jsonResponse(client, getData());
-    } else if (path === "/data" || path === "/data/") {
-        templateResponse(client, "data", global_variables.byName);
-    } else if (path.indexOf("/jdata/") === 0) {
-        const uriParts = http.parseURIParams(path.slice(3));
-        var obj2 = getDataFromPath(uriParts.path, uriParts.params);
 
-        //console.log("v path obj", obj2);
-        http.jsonResponse(client, obj2);
-    } else if (path.indexOf("/static/") === 0) {
-        http.fileResponse(client, "./Scripts/mm/static/" + path.substr("/static/".length));
-    } else if (path === "/favicon.png") {
-        http.fileResponse(client, "./Scripts/mm/static/favicon.png");
-    } else {
-    	console.log("404: " + path);
-        http.httpResponse(client, "404", "text/plain", 404);
+const routeTable = [
+    ["/", routeIndexPage],
+    ["/map", routeActorMapJSON],
+    ["/data", routeGlobalVariablesPage],
+    ["/data/", routeGlobalVariablesPage],
+    ["/j/data", routeGlobalVariablesJSON],
+    ["/j/data/", routeGlobalVariablesJSON],
+    ["/data/*", routeDataPage],
+    ["/j/data/*", routeDataJSON],
+    ["/static/*", routeStatic],
+    ["/favicon.png", routeFavicon]
+];
+
+function routeRequest(client, request) {
+    const path = request.path;
+    var routePath;
+    var routeHandler;
+
+    for (var i = 0; i < routeTable.length; i++) {
+        routePath = routeTable[i][0];
+        routeHandler = routeTable[i][1];
+
+        if (routeMatches(path, routePath))
+        {
+            request.subPath = getSubPath(path, routePath);
+            routeHandler(client, request);
+        }
     }
 
+    // If we made it this far, we couldn't find a route handler. 404
+    console.log("404: " + path);
+    http.httpResponse(client, "404", "text/plain", 404);
 }
 
-function templateResponse(client, name, model)
+function routeMatches(path, routePath)
 {
+    if (routePath.substr(-1) === "*")
+    {
+        if (path.substr(0, routePath.length - 1)
+            === routePath.substr(0, routePath.length - 1)) {
+            return true;
+        }
+    } else if (path === routePath) {
+        return true;
+    }
+
+    return false;
+}
+
+function getSubPath(path, routePath)
+{
+    if (routePath.substr(-1) !== "*")
+    {
+        return "";
+    }
+
+    return path.substr(routePath.length - 1);
+}
+
+
+
+// **************************** Route handlers *******************************************
+
+function routeIndexPage(client, request) {
+    templateResponse(client, "map", undefined);
+}
+
+function routeActorMapJSON(client, request) {
+    // Map data
+    http.jsonResponse(client, getData());
+}
+
+function routeGlobalVariablesPage(client, request) {
+    // Global Variables (data root)
+    templateResponse(client, "data", global_variables.byName);
+}
+
+function routeDataPage(client, request) {
+    const uriParts = http.parseURIParams(request.subPath);
+    var obj2 = getDataFromPath(uriParts.path, uriParts.params);
+    templateResponse(client, "data", obj2);
+}
+
+function routeGlobalVariablesJSON(client, request) {
+    http.jsonResponse(client, global_variables.byName);
+}
+
+function routeDataJSON(client, request) {
+    const uriParts = http.parseURIParams(request.subPath);
+    var obj2 = getDataFromPath(uriParts.path, uriParts.params);
+    http.jsonResponse(client, obj2);
+}
+
+function routeStatic(client, request) {
+    http.fileResponse(client, "./Scripts/mm/static/" + request.subPath);
+}
+
+function routeFavicon(client, request) {
+    http.fileResponse(client, "./Scripts/mm/static/favicon.png");
+}
+
+
+
+
+
+// **************************** Template *******************************************
+
+
+function templateResponse(client, name, model) {
     var template = fs.readFile("./Scripts/mm/html/template.html").toString();
     const innerFilename = "./Scripts/mm/html/" + name + ".html";
     const scriptFilename = "/static/" + name + ".js";
@@ -112,6 +179,8 @@ function templateResponse(client, name, model)
     http.httpResponse(client, template, "text/html");
 }
 
+
+// **************************** Data getting stuff *******************************************
 
 // path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
 // path is array of locations, params is any extra ?a=b junk
@@ -255,9 +324,6 @@ function asType(buffer, type, address) {
 }
 
 
-
-
-
 // **************************** MM *******************************************
 
 function getData() {
@@ -338,6 +404,7 @@ function makeVec3s(address) {
         z: mem.s16[address + 0x4]
     };
 }
+
 //
 // function Vec3fToString(address) {
 //     var x = mem.f32[address + 0x0];
