@@ -10,7 +10,7 @@ var makeshift_require = (function () {
             return module_exports[path].exports;
         }
 
-        const script = fd.readFile(path);
+        const script = fs.readFile(path);
         const module = {};
         const val = eval(
             "(function (module, makeshift_require) {\n"
@@ -19,11 +19,14 @@ var makeshift_require = (function () {
         );
 
         if (module.exports !== undefined) {
+            console.log("setting via exports");
             module_exports[path] = module.exports;
 
         }
-
-        module_exports[path] = val;
+        else {
+            console.log("setting via val");
+            module_exports[path] = val;
+        }
 
         return module_exports[path];
     }
@@ -72,26 +75,41 @@ function processGetRequest(client, request) {
     const path = request.path;
     //const headers = request.headers;
     if (path === "/") {
-        console.log("index");
-        http.fileResponse(client, "./Scripts/mm/index.html");
-        console.log("index done");
-    } else if (path === "/test") {
+        //http.fileResponse(client, "./Scripts/mm/index.html");
+        templateResponse(client, "map", undefined);
+    } else if (path === "/map") {
         http.jsonResponse(client, getData());
-    } else if (path.indexOf("/jv/") === 0) {
+    } else if (path === "/data" || path === "/data/") {
+        templateResponse(client, "data", global_variables.byName);
+    } else if (path.indexOf("/jdata/") === 0) {
         const uriParts = http.parseURIParams(path.slice(3));
         var obj2 = getDataFromPath(uriParts.path, uriParts.params);
 
         //console.log("v path obj", obj2);
         http.jsonResponse(client, obj2);
     } else if (path.indexOf("/static/") === 0) {
-        console.log("static");
         http.fileResponse(client, "./Scripts/mm/static/" + path.substr("/static/".length));
-        console.log("static done");
+    } else if (path === "/favicon.png") {
+        http.fileResponse(client, "./Scripts/mm/static/favicon.png");
     } else {
     	console.log("404: " + path);
         http.httpResponse(client, "404", "text/plain", 404);
     }
 
+}
+
+function templateResponse(client, name, model)
+{
+    var template = fs.readFile("./Scripts/mm/html/template.html").toString();
+    const innerFilename = "./Scripts/mm/html/" + name + ".html";
+    const scriptFilename = "/static/" + name + ".js";
+    const scriptTag = "<script src=\"" + scriptFilename + "\"></script>";
+    const inner = fs.readFile(innerFilename).toString();
+    template = template.replace("{{INNER}}", inner);
+    template = template.replace("{{NAME}}", name);
+    template = template.replace("{{SCRIPT}}", scriptTag);
+    template = template.replace("{{MODEL}}", JSON.stringify(model));
+    http.httpResponse(client, template, "text/html");
 }
 
 

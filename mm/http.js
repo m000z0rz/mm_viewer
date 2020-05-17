@@ -22,7 +22,8 @@ const httpResponseType = {
 const extensionToMimeType = {
     "html": "text/html",
     "json": "application/json",
-    "tsv": "text/tab-separated-values"
+    "tsv": "text/tab-separated-values",
+    "png": "image/png",
 };
 
 function fileResponse(client, path, contentType, callback)
