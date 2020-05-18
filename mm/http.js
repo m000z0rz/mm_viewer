@@ -90,20 +90,21 @@ function parseHttpRequest(data)
     }
 
     i = data.indexOf(" ", prev);
-    const path = data.slice(prev, i).toString();
+    const fullPath = data.slice(prev, i).toString();
     prev = i + 1;
 
     i = data.indexOf("\n", prev);
     prev = i + 1;
 
-    headersText = data.slice(prev).toString();
+    var headersText = data.slice(prev).toString();
 
     const headers = parseHeaders(headersText);
+    const pathData = parsePath(fullPath);
 
-    // TODO: should parse URI params here and include on request details (alongside full path)
     return {
-        path: path,
-
+        fullPath: fullPath,
+        path: pathData.path,
+        params: pathData.params,
         headers: headers
     };
 }
@@ -132,16 +133,17 @@ function parseHeader(headerLine)
 
 
 
-function parseURIParams(path)
+function parsePath(fullPath)
 {
-    path = decodeURIComponent(path);
-    const paramStart = path.indexOf("?");
+    const decodedPath = decodeURIComponent(fullPath);
+    const paramStart = decodedPath.indexOf("?");
     const params = {};
+    var path = decodedPath;
     if (paramStart !== -1)
     {
-        path = path.substr(0, paramStart);
+        path = decodedPath.substr(0, paramStart);
 
-        const paramAssignments = path.substr(paramStart + 1).split("&");
+        const paramAssignments = decodedPath.substr(paramStart + 1).split("&");
         paramAssignments.forEach(function(assignment) {
             const equals = assignment.indexOf("=");
             params[assignment.substr(0, equals)] = params[assignment.substr(equals + 1)];

@@ -132,13 +132,20 @@ function routeActorMapJSON(client, request) {
 
 function routeGlobalVariablesPage(client, request) {
     // Global Variables (data root)
-    templateResponse(client, "data", global_variables.byName);
+    const model = {
+        "breadcrumbs": breadcrumbs(request.subPath),
+        "globalVariables": global_variables.byName,
+    };
+
+    templateResponse(client, "data", model);
 }
 
 function routeDataPage(client, request) {
-    const uriParts = http.parseURIParams(request.subPath);
-    var obj2 = getDataFromPath(uriParts.path, uriParts.params);
-    templateResponse(client, "data", obj2);
+    const model = {
+        "breadcrumbs": breadcrumbs(request.subPath),
+        "data": getDataFromPath(request.subPath, request.params),
+    };
+    templateResponse(client, "data", model);
 }
 
 function routeGlobalVariablesJSON(client, request) {
@@ -146,9 +153,7 @@ function routeGlobalVariablesJSON(client, request) {
 }
 
 function routeDataJSON(client, request) {
-    const uriParts = http.parseURIParams(request.subPath);
-    var obj2 = getDataFromPath(uriParts.path, uriParts.params);
-    http.jsonResponse(client, obj2);
+    http.jsonResponse(client, getDataFromPath(request.subPath, request.params));
 }
 
 function routeStatic(client, request) {
@@ -165,13 +170,31 @@ function routeFavicon(client, request) {
 
 // **************************** Template *******************************************
 
+function breadcrumbs(path)
+{
+    const items = path.split("\n").filter(function(item) { return item !== ""; });
+    var cumulativePath = "";
+    return items.map(function(item) {
+        cumulativePath += "/" + item;
+        return {
+            "fieldName": item,
+            "path": cumulativePath
+        };
+    });
+}
 
-function templateResponse(client, name, model) {
+function templateResponse(client, name, pageModel) {
     var template = fs.readFile("./Scripts/mm/html/template.html").toString();
     const innerFilename = "./Scripts/mm/html/" + name + ".html";
     const scriptFilename = "/static/" + name + ".js";
     const scriptTag = "<script src=\"" + scriptFilename + "\"></script>";
     const inner = fs.readFile(innerFilename).toString();
+
+    var model = {
+        "nav": undefined,
+        "page": pageModel
+    };
+
     template = template.replace("{{INNER}}", inner);
     template = template.replace("{{NAME}}", name);
     template = template.replace("{{SCRIPT}}", scriptTag);
@@ -183,11 +206,10 @@ function templateResponse(client, name, model) {
 // **************************** Data getting stuff *******************************************
 
 // path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
-// path is array of locations, params is any extra ?a=b junk
 function getDataFromPath(path, params) {
 
-    console.log("getDataFromPath path", path);
-    console.log("getDataFromPath params", params);
+    // console.log("getDataFromPath path", path);
+    // console.log("getDataFromPath params", params);
 
     var offset = 0x0;
     var fields = undefined;
@@ -240,7 +262,7 @@ function getDataFromPath(path, params) {
 
     //return [offset, type];
     // offset should now point to the thing we want, and type should be the appropriate type
-    return valueAt(offset, type);
+    return valueAt(offset, type, path.split("/")[-1]);
 }
 
 function memArrayBuffer(address, size) {
@@ -251,9 +273,9 @@ function memArrayBuffer(address, size) {
     return buf;
 }
 
-function valueAt(address, type) {
+function valueAt(address, type, name) {
     const buf = memArrayBuffer(address, type.size());
-    return asType(buf, type, address);
+    return asType(buf, type, name, address);
 }
 
 //
@@ -268,13 +290,14 @@ function valueAt(address, type) {
 // 	"*": "u32"
 // };
 //
-function asType(buffer, type, address) {
+function asType(buffer, type, name, address) {
     // add special handling for char* here, assuming it's null string
     if (type.isBasic) {
         const dv = new DataView(buffer);
         return {
             "value": dv[type.basicReadFunction](),
             "typeName": type.typeName,
+            "name": name,
             "address": address.toString(16)
         };
     } else if (type.isPointer) {
@@ -282,6 +305,7 @@ function asType(buffer, type, address) {
         return {
             "value": dv.getUint32(),
             "typeName": type.typeName,
+            "name": name,
             "address": address.toString(16)
         };
     } else if (type.isStruct) {
@@ -290,12 +314,17 @@ function asType(buffer, type, address) {
             "typeName": type.typeName,
             "fields": {},
             "fieldDefinitions": type.fields,
+            "name": name,
             "address": address.toString(16)
         };
 
         type.fields.forEach(function (field) {
             var fieldType = field.type();
-            obj.fields[field.name] = asType(buffer.slice(field.offset, field.offset + fieldType.size()), fieldType, address + field.offset);
+            obj.fields[field.name] = asType(
+                buffer.slice(field.offset, field.offset + fieldType.size()),
+                fieldType,
+                field.name,address + field.offset
+            );
         });
 
         return obj;
@@ -303,6 +332,7 @@ function asType(buffer, type, address) {
         const values = {
             "values": [],
             "typeName": type.typeName,
+            "name": name,
             "address": address.toString(16)
         };
         const valueType = type.arrayOf();
@@ -312,7 +342,8 @@ function asType(buffer, type, address) {
                 asType(
                     buffer.slice(i * valueSize, (i + 1) * valueSize),
                     valueType,
-                    address + i * valueSize
+                    name + "[" + i + "]",
+                    address + i * valueSize,
                 )
             );
         }
