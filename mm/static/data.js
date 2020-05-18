@@ -106,9 +106,14 @@ function buildData(data) {
 
     var valueCells = newRows.append("td");
 
-    valueCells.filter(d => d.typeName.endsWith("*"))
+    var pointerValueCells = valueCells.filter(d => d.typeName.endsWith("*"));
+
+    pointerValueCells.filter(d => d.value === "0")
+        .text(d => "NULL")
+        ;
+
+    pointerValueCells.filter(d => d.value !== "0")
         .append("a")
-        //.attr("href", d => "/data" + d.path)
         .attr("href", d => d.path)
         .text(d => "0x" + d.value.toString(16).toUpperCase())
     ;
@@ -123,10 +128,6 @@ function buildData(data) {
 
 }
 
-function rollupDataWrapper(data) {
-    // initial level is a bit special. we don't want a row for the whole object if it's an array or struct
-
-}
 
 function rollupData(d, prefix, depth, includeParent) {
     includeParent = includeParent ?? true;
@@ -183,37 +184,6 @@ function rollupData(d, prefix, depth, includeParent) {
             "depth": depth
         }];
     }
-}
-
-function buildValueRows(table, data, indent) {
-    indent = indent || 0;
-    if (data.values) {
-        // array
-        // TODO: make the main row
-        buildSubValueRows(table, data, indent + 1);
-    } else if (data.fields) {
-        // object
-
-        // TODO: make the main row
-        buildSubValueRows(table, data, indent + 1);
-    } else {
-
-    }
-
-}
-
-function buildSubValueRows(table, data, indent) {
-    indent = indent || 0;
-
-    if (data.values) {
-        // array
-    } else if (data.fields) {
-        //struct
-        var fields = d3.values(data.fields).sort((a, b) => d3.ascending(parseInt(a.address, 16), parseInt(b.address, 16)));
-        const tbody = table.append("tbody")
-
-    }
-
 }
 
 function buildBreadcrumbs(data) {
