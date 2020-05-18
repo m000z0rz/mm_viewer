@@ -37,7 +37,7 @@ function fileResponse(client, path, contentType, callback)
     const buffer = fs.readFile(path);
     if (!buffer)
     {
-        httpResponse(client, "404", "text/plain", 404);
+        notFoundResponse(client, callback);
     }
     else
     {
@@ -49,6 +49,11 @@ function fileResponse(client, path, contentType, callback)
 function jsonResponse(client, obj, callback)
 {
     httpResponse(client, JSON.stringify(obj), "application/json", 200, callback);
+}
+
+function notFoundResponse(client, callback)
+{
+    httpResponse(client, "404", "text/plain", 404, callback);
 }
 
 function httpResponse(client, data, contentType, code, callback)
@@ -160,7 +165,7 @@ function parsePath(fullPath)
 module.exports = {
     "fileResponse": fileResponse,
     "jsonResponse": jsonResponse,
+    "notFoundResponse": notFoundResponse,
     "httpResponse": httpResponse,
-    "parseHttpRequest": parseHttpRequest,
-    "parseURIParams": parseURIParams,
+    "parseHttpRequest": parseHttpRequest
 };

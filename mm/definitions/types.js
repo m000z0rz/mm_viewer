@@ -82,12 +82,13 @@ const structTypes = [
                 "typeName": "Actor*",
                 "offset": 0x4
             },
-            {
-                "name": "pad8",
-                "typeName": "UNK_TYPE1[8]",
-                "offset": 0x8,
-            }
-        ]
+            // {
+            //     "name": "pad8",
+            //     "typeName": "UNK_TYPE1[8]",
+            //     "offset": 0x8,
+            // },
+        ],
+        "size": 0xC
     },
     {
         "name": "Actor",
@@ -252,7 +253,7 @@ const structTypes = [
             },
             {
                 "name": "rot",
-                "typeName": "Vec32",
+                "typeName": "Vec3s",
                 "offset": 0xC
             },
         ],
@@ -310,6 +311,7 @@ const basic_sizes = {
     "u16": 0x2,
     "s8": 0x1,
     "u8": 0x1,
+    "void*": 0x4,
 };
 
 typeMap = {};
@@ -329,7 +331,7 @@ typeMap["void*"] = new Type("void*", undefined, 4, "getUint32");
 // Aliase
 
 type_aliases = {
-    "actor_func": "void*",
+    "actor_func": "void*", // TODO: FIX shoudl be actor_func, but needs to know it's a poitner!
     "UNK_TYPE1": "u8"
 };
 
@@ -361,32 +363,30 @@ function Type(typeName, fields, size, basicReadFunction) {
     // special bottom types
     if (typeName === "char*" || typeName === "void*") {
         this.name = typeName;
-        return;
-    }
+    } else {
+        if (typeName.indexOf("[") !== -1) {
+            this.isArray = true;
+            var open = typeName.indexOf("[");
+            var close = typeName.indexOf("]", open);
+            this.arrayOfTypeName = typeName.substr(0, open) + typeName.substr(close + 1);
+            this.arrayLength = parseInt(typeName.substr(open + 1, close));
+        } else if (typeName.indexOf("*") !== -1) {
+            this.isPointer = true;
+            this.pointsToTypeName = typeName.slice(0, -1);
+        } else if (fields !== undefined) {
+            var that = this;
+            this.isStruct = true;
+            // Copy fields
+            this.fields = fields.slice();
+            this.field = {};
 
-
-    if (typeName.indexOf("[") !== -1) {
-        this.isArray = true;
-        var open = typeName.indexOf("[");
-        var close = typeName.indexOf("]", open);
-        this.arrayOfTypeName = typeName.substr(0, open) + typeName.substr(close + 1);
-        this.arrayLength = parseInt(typeName.substr(open + 1, close));
-    } else if (typeName.indexOf("*") !== -1) {
-        this.isPointer = true;
-        this.pointsToTypeName = typeName.slice(0, -1);
-    } else if (fields !== undefined) {
-        var that = this;
-        this.isStruct = true;
-        // Copy fields
-        this.fields = fields.slice();
-        this.field = {};
-
-        this.fields.forEach(function (field) {
-            that.field[field.name] = field;
-            field.type = function () {
-                return getType(field.typeName);
-            }
-        });
+            this.fields.forEach(function (field) {
+                that.field[field.name] = field;
+                field.type = function () {
+                    return getType(field.typeName);
+                }
+            });
+        }
     }
 
     this.pointsTo = function () {

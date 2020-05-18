@@ -10,7 +10,7 @@ var makeshift_require = (function () {
 
     return function makeshift_require(path) {
         if (module_exports[path] !== undefined) {
-            return module_exports[path].exports;
+            return module_exports[path];
         }
 
         const script = fs.readFile(path);
@@ -50,8 +50,8 @@ server.on('connection', function (client) {
         try {
             const request = http.parseHttpRequest(data.toString());
             routeRequest(client, request);
-        } catch (ex) {
-            console.log("exception ", ex);
+        } catch (e) {
+            console.log("exception ", e, e.lineNumber, e.fileName, JSON.stringify(e));
         }
     });
 });
@@ -84,12 +84,13 @@ function routeRequest(client, request) {
         {
             request.subPath = getSubPath(path, routePath);
             routeHandler(client, request);
+            return;
         }
     }
 
     // If we made it this far, we couldn't find a route handler. 404
     console.log("404: " + path);
-    http.httpResponse(client, "404", "text/plain", 404);
+    http.notFoundResponse(client);
 }
 
 function routeMatches(path, routePath)
@@ -141,6 +142,13 @@ function routeGlobalVariablesPage(client, request) {
 }
 
 function routeDataPage(client, request) {
+    const data = getDataFromPath(request.subPath, request.params);
+    if (data === undefined)
+    {
+        http.notFoundResponse(client);
+        return;
+    }
+
     const model = {
         "breadcrumbs": breadcrumbs(request.subPath),
         "data": getDataFromPath(request.subPath, request.params),
@@ -172,7 +180,7 @@ function routeFavicon(client, request) {
 
 function breadcrumbs(path)
 {
-    const items = path.split("\n").filter(function(item) { return item !== ""; });
+    const items = path.split("/").filter(function(item) { return item !== ""; });
     var cumulativePath = "";
     return items.map(function(item) {
         cumulativePath += "/" + item;
@@ -214,55 +222,78 @@ function getDataFromPath(path, params) {
     var offset = 0x0;
     var fields = undefined;
     var type = undefined;
+    var lastLocation = undefined;
 
     fields = global_variables.byName;
+    var previouslyArray = false;
+
 
     path.split("/").forEach(function (location) {
-        if (fields === undefined) {
-            console.log("Couldn't find more fields at " + location + " in " + path);
-            return undefined;
-        }
+        lastLocation = location;
 
-        var fieldName = location;
-        var fieldIndex = undefined;
-        var rest = "";
-        if (location.indexOf("[") !== -1) {
-            var start = location.indexOf("[");
-            fieldName = location.substr(0, start);
-            var end = location.indexOf("]", start);
-            fieldIndex = parseInt(location.substr(start + 1, end));
-            rest = location.substr(end + 1);
-        }
+        if (previouslyArray)
+        {
+            var fieldIndex = undefined;
+            //var rest = "";
+            if (location.indexOf("[") !== -1) {
+                var start = location.indexOf("[");
+                //fieldName = location.substr(0, start);
+                var end = location.indexOf("]", start);
+                fieldIndex = parseInt(location.substr(start + 1, end));
+                //rest = location.substr(end + 1);
+                // could check against array name, but... eh
+            }
+            else
+            {
+                // trying to access a subfield on an array without going through an element, that's bad
+                return undefined;
+            }
 
-        if (fields[fieldName] === undefined) {
-            console.log("Couldn't find " + fieldName + " in " + path);
-            return undefined;
-        }
+            type = type.arrayOf();
+            //console.log("array type size " + type.size());
+            offset += fieldIndex * type.size();
 
-        field = fields[fieldName];
-        type = field.type();
-        offset += field.offset;
+        }
+        else {
+            if (fields === undefined) {
+                console.log("Couldn't find more fields at " + location + " in " + path);
+                return undefined;
+            }
+
+            var fieldName = location;
+
+
+            if (fields[fieldName] === undefined) {
+                console.log("Couldn't find " + fieldName + " in " + path);
+                return undefined;
+            }
+
+            field = fields[fieldName];
+            type = field.type();
+            offset += field.offset;
+        }
 
         // prep next fields is possible
         if (type.isPointer) {
             offset = mem.u32[offset];
-            fields = type.pointsTo().field;
+            type = type.pointsTo();
+            fields = type.field;
             //console.log("new pointy fields len ", fields.length);
+            previouslyArray = false;
         } else if (type.isStruct) {
             fields = type.field;
+            previouslyArray = false;
         } else if (type.isArray) {
-            if (fieldIndex !== undefined) {
-                type = type.arrayOf();
-                console.log("array typ esize " + type.size());
-                offset += fieldIndex * type.size();
-            }
+            previouslyArray = true;
             return undefined;
+        } else {
+            previouslyArray = false;
         }
     });
 
     //return [offset, type];
     // offset should now point to the thing we want, and type should be the appropriate type
-    return valueAt(offset, type, path.split("/")[-1]);
+    return valueAt(offset, type, lastLocation);
 }
 
 function memArrayBuffer(address, size) {
@@ -274,6 +305,10 @@ function memArrayBuffer(address, size) {
 }
 
 function valueAt(address, type, name) {
+    if (type === undefined)
+    {
+        console.log("type undefined", address, name);
+    }
     const buf = memArrayBuffer(address, type.size());
     return asType(buf, type, name, address);
 }
@@ -292,6 +327,7 @@ function valueAt(address, type, name) {
 //
 function asType(buffer, type, name, address) {
     // add special handling for char* here, assuming it's null string
+
     if (type.isBasic) {
         const dv = new DataView(buffer);
         return {
@@ -320,6 +356,15 @@ function asType(buffer, type, name, address) {
 
         type.fields.forEach(function (field) {
             var fieldType = field.type();
+            if (fieldType.size === undefined)
+            {
+                console.log("bad field type sizer ", JSON.stringify(field));
+            }
+            if (buffer.slice === undefined)
+            {
+                console.log("no buffer slice...?", buffer, JSON.stringify(buffer));
+            }
+
             obj.fields[field.name] = asType(
                 buffer.slice(field.offset, field.offset + fieldType.size()),
                 fieldType,
@@ -343,7 +388,7 @@ function asType(buffer, type, name, address) {
                     buffer.slice(i * valueSize, (i + 1) * valueSize),
                     valueType,
                     name + "[" + i + "]",
-                    address + i * valueSize,
+                    address + i * valueSize
                 )
             );
         }

@@ -1,47 +1,47 @@
-$(document).ready(function() {
-   console.log("data ready");
-   console.log("m?", m);
+$(document).ready(function () {
+    console.log("data ready");
+    console.log("m?", m);
 
-   var model = m.page;
+    var model = m.page;
 
-   buildBreadcrumbs(model.breadcrumbs);
+    buildBreadcrumbs(model.breadcrumbs);
 
-   // If we're at the root, we'll hae a list of global variables. otherwise, we'll have data for something
-   if (model.globalVariables) {
-      buildGlobalVariables(model.globalVariables);
-   } else {
-      buildData(model.data);
-   }
+    // If we're at the root, we'll hae a list of global variables. otherwise, we'll have data for something
+    if (model.globalVariables) {
+        buildGlobalVariables(model.globalVariables);
+    } else {
+        buildData(model.data);
+    }
 });
 
 function buildGlobalVariables(gvs) {
-   gvs = Object.values(gvs)
-       .sort((a, b) => d3.ascending(a.offset, b.offset));
+    gvs = Object.values(gvs)
+        .sort((a, b) => d3.ascending(a.offset, b.offset));
 
-   const container = d3.select("#globalVariables");
-   console.log("container", container);
-   console.log("gvs?", gvs);
-   const links = container.selectAll("span.nav-link").data(gvs);
+    const container = d3.select("#globalVariables");
+    console.log("container", container);
+    console.log("gvs?", gvs);
+    const links = container.selectAll("span.nav-link").data(gvs);
 
-   //<span class="nav-link" href>Link <a href="'#">ssltekshe</a> asdf</span>
+    //<span class="nav-link" href>Link <a href="'#">ssltekshe</a> asdf</span>
 
-   newLinks = links.enter()
-       .append("span")
-       .classed("nav-link", true)
-       ;
+    newLinks = links.enter()
+        .append("span")
+        .classed("nav-link", true)
+    ;
 
-   newLinks.append("small")
-       .text(d => " 0x" + d.offset.toString(16).toUpperCase())
-   ;
+    newLinks.append("small")
+        .text(d => " 0x" + d.offset.toString(16).toUpperCase())
+    ;
 
-   newLinks.append("span")
-       .text(d => " " + d.typeName + " ")
-       ;
+    newLinks.append("span")
+        .text(d => " " + d.typeName + " ")
+    ;
 
-   newLinks.append("a")
-       .text(d => d.name)
-       .attr("href", d => "/data/" + d.name)
-       ;
+    newLinks.append("a")
+        .text(d => d.name)
+        .attr("href", d => "/data/" + d.name)
+    ;
 
 }
 
@@ -72,41 +72,165 @@ array:
    "address": address.toString(16)
 }
  */
-function buildData(data)
-{
-   // outer thing data
-   d3.select("#valueName")
-       .textContent(data.name)
-   ;
+function buildData(data) {
+    // outer thing data
+    d3.select("#valueName")
+        .text(data.name)
+        .attr("title", "0x" + data.address.toString(16).toUpperCase())
+    ;
 
-   // so here I think I need to do different stuff depending on whether data is
-   //  for array/struct (has values/fields) or not
-   //  probably shouldn't ever be pointer (server will just follow through to value)
-   //  but it could be a basic value, which would be handled differently
-   //if (data.)
-   d3.select("#dataTableBody")
-       .selectAll("tr")
-       .data()
+    const tbody = d3.select("#dataTableBody")
+    ;
 
-   ;
+    // Roll up the hierarchical data to a flat array that we can build trs with
+    var startDepth = 0;
+    if (data.values || data.fields) {
+        startDepth = -1;
+    }
+    const flatData = rollupData(data, "", startDepth, false);
+    console.log("flatData", flatData);
+
+    const rows = tbody.selectAll("tr")
+        .data(flatData, d => d.path)
+        .order()
+    ;
+
+    var newRows = rows.enter()
+        .append("tr")
+    ;
+
+    newRows.append("th")
+        .html(d => "&nbsp;&nbsp;".repeat(d.depth) + d.name)
+        .attr("title", d => d.typeName + " @ 0x" + d.address.toUpperCase())
+
+
+    var valueCells = newRows.append("td");
+
+    valueCells.filter(d => d.typeName.endsWith("*"))
+        .append("a")
+        //.attr("href", d => "/data" + d.path)
+        .attr("href", d => d.path)
+        .text(d => "0x" + d.value.toString(16).toUpperCase())
+    ;
+
+    valueCells.filter(d => !d.typeName.endsWith("*"))
+        .text(d => d.value)
+    ;
+
+    newRows.append("td")
+        .text("o")
+    ;
+
 }
 
-function buildBreadcrumbs(data)
-{
-   // data is [{fieldName, path}]
-   data = [{"fieldName": "Global Variables", "path": "/"}].concat(data);
+function rollupDataWrapper(data) {
+    // initial level is a bit special. we don't want a row for the whole object if it's an array or struct
 
-   const items = d3.select("#breadcrumbs")
-       .selectAll("li.breadcrumb-item")
-       .data(data)
-   ;
+}
 
-   items.enter()
-       .append("li")
-       .classed("breadcrumb-item", true)
+function rollupData(d, prefix, depth, includeParent) {
+    includeParent = includeParent ?? true;
+    var parent = [];
 
-       .append("a")
-       .text(d => d.fieldName)
-       .attr("href", d => "/data" + d.path)
-   ;
+    if (d.values) {
+        // array
+        parent = [];
+        if (includeParent) {
+            parent = [
+                {
+                    "name": d.name,
+                    "path": includeParent ? prefix + "/" + d.name : d.name,
+                    "address": d.address,
+                    "typeName": d.typeName,
+                    "value": undefined,
+                    "depth": depth
+                }
+            ];
+        }
+        return parent.concat(d.values.flatMap(val =>
+            rollupData(val, prefix === "" ? d.name : prefix + "/" + d.name, depth + 1, true)
+        ));
+    } else if (d.fields) {
+        // object
+        parent = [];
+        if (includeParent) {
+            parent = [
+                {
+                    "name": d.name,
+                    "path": includeParent ? prefix + "/" + d.name : d.name,
+                    "address": d.address,
+                    "typeName": d.typeName,
+                    "value": undefined,
+                    "depth": depth
+                }
+            ];
+        }
+        return parent.concat(
+            d3.values(d.fields)
+                .sort((a, b) => d3.ascending(parseInt(a.address, 16), parseInt(b.address, 16)))
+                .flatMap(field =>
+                    rollupData(field, prefix === "" ? d.name : prefix + "/" + d.name, depth + 1, true)
+                )
+        );
+
+    } else {
+        return [{
+            "name": d.name,
+            "path": prefix + "/" + d.name,
+            "address": d.address,
+            "typeName": d.typeName,
+            "value": d.value,
+            "depth": depth
+        }];
+    }
+}
+
+function buildValueRows(table, data, indent) {
+    indent = indent || 0;
+    if (data.values) {
+        // array
+        // TODO: make the main row
+        buildSubValueRows(table, data, indent + 1);
+    } else if (data.fields) {
+        // object
+
+        // TODO: make the main row
+        buildSubValueRows(table, data, indent + 1);
+    } else {
+
+    }
+
+}
+
+function buildSubValueRows(table, data, indent) {
+    indent = indent || 0;
+
+    if (data.values) {
+        // array
+    } else if (data.fields) {
+        //struct
+        var fields = d3.values(data.fields).sort((a, b) => d3.ascending(parseInt(a.address, 16), parseInt(b.address, 16)));
+        const tbody = table.append("tbody")
+
+    }
+
+}
+
+function buildBreadcrumbs(data) {
+    // data is [{fieldName, path}]
+    data = [{"fieldName": "Global Variables", "path": "/"}].concat(data);
+
+    const items = d3.select("#breadcrumbs")
+        .selectAll("li.breadcrumb-item")
+        .data(data)
+    ;
+
+    items.enter()
+        .append("li")
+        .classed("breadcrumb-item", true)
+
+        .append("a")
+        .text(d => d.fieldName)
+        .attr("href", d => "/data/" + d.path)
+    ;
 }
