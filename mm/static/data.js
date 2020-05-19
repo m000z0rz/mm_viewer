@@ -1,18 +1,18 @@
-$(document).ready(function () {
-    console.log("data ready");
-    console.log("m?", m);
+Promise.all([documentReady(), cmActorList()])
+    .then(function(_, cmActorList) {
+        var model = m.page;
 
-    var model = m.page;
+        buildBreadcrumbs(model.breadcrumbs);
 
-    buildBreadcrumbs(model.breadcrumbs);
+        // If we're at the root, we'll hae a list of global variables. otherwise, we'll have data for something
+        if (model.globalVariables) {
+            buildGlobalVariables(model.globalVariables);
+        } else {
+            buildData(model.data);
+        }
+    });
 
-    // If we're at the root, we'll hae a list of global variables. otherwise, we'll have data for something
-    if (model.globalVariables) {
-        buildGlobalVariables(model.globalVariables);
-    } else {
-        buildData(model.data);
-    }
-});
+
 
 function buildGlobalVariables(gvs) {
     gvs = Object.values(gvs)
@@ -87,6 +87,7 @@ function buildData(data) {
     if (data.values || data.fields) {
         startDepth = -1;
     }
+    console.log("data", data);
     const flatData = rollupData(data, "", startDepth, false);
     console.log("flatData", flatData);
 
@@ -103,7 +104,7 @@ function buildData(data) {
         .html(d => "&nbsp;&nbsp;".repeat(d.depth) + d.name)
         .attr("title", d => d.typeName + " @ 0x" + d.address.toUpperCase())
 
-
+    // Value cells
     var valueCells = newRows.append("td");
 
     var pointerValueCells = valueCells.filter(d => d.typeName.endsWith("*"));
@@ -118,10 +119,13 @@ function buildData(data) {
         .text(d => "0x" + d.value.toString(16).toUpperCase())
     ;
 
+    // nonpointer value cells
     valueCells.filter(d => !d.typeName.endsWith("*"))
         .text(d => d.value)
     ;
 
+
+    // breakpoint stuff will go here
     newRows.append("td")
         .text("o")
     ;
@@ -143,7 +147,7 @@ function rollupData(d, prefix, depth, includeParent) {
                     "path": includeParent ? prefix + "/" + d.name : d.name,
                     "address": d.address,
                     "typeName": d.typeName,
-                    "value": undefined,
+                    "value": d.value,
                     "depth": depth
                 }
             ];
@@ -161,7 +165,7 @@ function rollupData(d, prefix, depth, includeParent) {
                     "path": includeParent ? prefix + "/" + d.name : d.name,
                     "address": d.address,
                     "typeName": d.typeName,
-                    "value": undefined,
+                    "value": d.value,
                     "depth": depth
                 }
             ];

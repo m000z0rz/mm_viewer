@@ -475,22 +475,3 @@ function makeVec3s(address) {
         z: mem.s16[address + 0x4]
     };
 }
-
-//
-// function Vec3fToString(address) {
-//     var x = mem.f32[address + 0x0];
-//     var y = mem.f32[address + 0x4];
-//     var z = mem.f32[address + 0x8];
-//     return ("(" + x + ", " + y + ", " + z + ")");
-// }
-//
-// function Vec3sToString(address) {
-//     var x = mem.s16[address + 0x0];
-//     var y = mem.s16[address + 0x2];
-//     var z = mem.s16[address + 0x4];
-//     return "(" + x + ", " + y + ", " + z + ")";
-// }
-//
-// function PosRotToString(address) {
-//     return Vec3fToString(address + 0x0) + ", " + Vec3sToString(address + 0xC);
-// }

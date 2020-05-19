@@ -1,38 +1,39 @@
 var requestDelay = 100;
 
-function map_main(cm_actor_list) {
-    const actorMap = d3.map(cm_actor_list, d => d.id);
+Promise.all([documentReady(), cmActorList()])
+    .then(function (_, cmActorList) {
+        const actorMap = d3.map(cmActorList, d => d.id);
 
-    var ajax = new XMLHttpRequest();
-    ajax.onreadystatechange = function () {
-        if (this.readyState === 4 && this.status === 200) {
+        var ajax = new XMLHttpRequest();
+        ajax.onreadystatechange = function () {
+            if (this.readyState === 4 && this.status === 200) {
+                d3.select("#disconnectedBadge")
+                    .style("display", "none")
+                ;
+
+                //document.getElementById("main").innerHTML = this.response.replace(/\n/g, "<br/>", /\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
+                drawPositions(JSON.parse(this.response), actorMap);
+                setTimeout(doRequest, requestDelay);
+            }
+        }
+        ajax.onerror = function () {
             d3.select("#disconnectedBadge")
-                .style("display", "none")
+                .style("display", undefined)
             ;
 
-            //document.getElementById("main").innerHTML = this.response.replace(/\n/g, "<br/>", /\t/g, "&nbsp;&nbsp;&nbsp;&nbsp;");
-            drawPositions(JSON.parse(this.response), actorMap);
-            setTimeout(doRequest, requestDelay);
+            // try again in a bit
+            setTimeout(doRequest, 1000);
         }
-    }
-    ajax.onerror = function () {
-        d3.select("#disconnectedBadge")
-            .style("display", undefined)
-        ;
 
-        // try again in a bit
-        setTimeout(doRequest, 1000);
-    }
+        function doRequest() {
+            ajax.open("GET", "http://localhost:7777/map", true);
+            ajax.responseType = "text";
+            ajax.send();
+        }
 
-    function doRequest() {
-        ajax.open("GET", "http://localhost:7777/map", true);
-        ajax.responseType = "text";
-        ajax.send();
-    }
+        doRequest();
+    });
 
-    doRequest();
-
-}
 
 const width = 800, height = 600;
 const svg = d3.select("#map")
@@ -121,31 +122,3 @@ function drawPositions(data, actorMap) {
         .remove();
 }
 
-function actorDisplayName(actorMap, id)
-{
-    const d = actorMap.get(id);
-    if (d.description !== "") return d.filename + " / " + d.description;
-    if (d.translation !== "") return d.filename + " / " + d.translation;
-
-    return d.filename;
-}
-
-d3.tsv(
-    "/static/cm_actor_list.tsv",
-    function tsv_parse_row(d) {
-        return {
-            id: parseInt(d.id, 16),
-            filename: d.filename,
-            objectID: parseInt(d.objectID, 16),
-            translation: d.translation,
-            description: d.description,
-            used: d.used
-        }
-    }
-).then(function (cm_actor_list) {
-        $(document).ready(function () {
-            map_main(cm_actor_list);
-        });
-    }
-)
-;
