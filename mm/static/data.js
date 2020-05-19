@@ -108,11 +108,11 @@ function buildData(data) {
 
     var pointerValueCells = valueCells.filter(d => d.typeName.endsWith("*"));
 
-    pointerValueCells.filter(d => d.value === "0")
+    pointerValueCells.filter(d => d.value === 0)
         .text(d => "NULL")
         ;
 
-    pointerValueCells.filter(d => d.value !== "0")
+    pointerValueCells.filter(d => d.value !== 0)
         .append("a")
         .attr("href", d => d.path)
         .text(d => "0x" + d.value.toString(16).toUpperCase())

@@ -1,3 +1,8 @@
+
+if (typeof(basePath) === undefined)
+{
+    basePath = "./Scripts";
+}
 // This is the main script to place in Proejct64's Scripts directory
 
 
@@ -22,11 +27,9 @@ var makeshift_require = (function () {
         );
 
         if (module.exports !== undefined) {
-            console.log("setting via exports");
             module_exports[path] = module.exports;
 
         } else {
-            console.log("setting via val");
             module_exports[path] = val;
         }
 
@@ -35,9 +38,9 @@ var makeshift_require = (function () {
 })();
 
 
-const types = makeshift_require("./Scripts/mm/definitions/types.js");
-const global_variables = makeshift_require("./Scripts/mm/definitions/global_variables.js");
-const http = makeshift_require("./Scripts/mm/http.js");
+const types = makeshift_require(basePath + "/mm/definitions/types.js");
+const global_variables = makeshift_require(basePath + "/mm/definitions/global_variables.js");
+const http = makeshift_require(basePath + "/mm/http.js");
 
 
 
@@ -165,11 +168,11 @@ function routeDataJSON(client, request) {
 }
 
 function routeStatic(client, request) {
-    http.fileResponse(client, "./Scripts/mm/static/" + request.subPath);
+    http.fileResponse(client, basePath + "/mm/static/" + request.subPath);
 }
 
 function routeFavicon(client, request) {
-    http.fileResponse(client, "./Scripts/mm/static/favicon.png");
+    http.fileResponse(client, basePath + "/mm/static/favicon.png");
 }
 
 
@@ -192,8 +195,8 @@ function breadcrumbs(path)
 }
 
 function templateResponse(client, name, pageModel) {
-    var template = fs.readFile("./Scripts/mm/html/template.html").toString();
-    const innerFilename = "./Scripts/mm/html/" + name + ".html";
+    var template = fs.readFile(basePath + "/mm/html/template.html").toString();
+    const innerFilename = basePath + "/mm/html/" + name + ".html";
     const scriptFilename = "/static/" + name + ".js";
     const scriptTag = "<script src=\"" + scriptFilename + "\"></script>";
     const inner = fs.readFile(innerFilename).toString();
@@ -356,14 +359,6 @@ function asType(buffer, type, name, address) {
 
         type.fields.forEach(function (field) {
             var fieldType = field.type();
-            if (fieldType.size === undefined)
-            {
-                console.log("bad field type sizer ", JSON.stringify(field));
-            }
-            if (buffer.slice === undefined)
-            {
-                console.log("no buffer slice...?", buffer, JSON.stringify(buffer));
-            }
 
             obj.fields[field.name] = asType(
                 buffer.slice(field.offset, field.offset + fieldType.size()),
