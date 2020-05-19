@@ -1,9 +1,7 @@
 var requestDelay = 100;
 
-Promise.all([documentReady(), cmActorList()])
-    .then(function (_, cmActorList) {
-        const actorMap = d3.map(cmActorList, d => d.id);
-
+Promise.all([actorMap(), documentReady()])
+    .then(function ([actorMap]) {
         var ajax = new XMLHttpRequest();
         ajax.onreadystatechange = function () {
             if (this.readyState === 4 && this.status === 200) {

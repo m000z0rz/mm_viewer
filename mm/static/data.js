@@ -1,6 +1,9 @@
-Promise.all([documentReady(), cmActorList()])
-    .then(function(_, cmActorList) {
-        var model = m.page;
+Promise.all([actorMap(), documentReady])
+    .then(function ([actorMap]) {
+        const model = m.page;
+        const context = {
+            "actorMap": actorMap
+        };
 
         buildBreadcrumbs(model.breadcrumbs);
 
@@ -8,10 +11,9 @@ Promise.all([documentReady(), cmActorList()])
         if (model.globalVariables) {
             buildGlobalVariables(model.globalVariables);
         } else {
-            buildData(model.data);
+            buildData(model.data, context);
         }
     });
-
 
 
 function buildGlobalVariables(gvs) {
@@ -19,8 +21,6 @@ function buildGlobalVariables(gvs) {
         .sort((a, b) => d3.ascending(a.offset, b.offset));
 
     const container = d3.select("#globalVariables");
-    console.log("container", container);
-    console.log("gvs?", gvs);
     const links = container.selectAll("span.nav-link").data(gvs);
 
     //<span class="nav-link" href>Link <a href="'#">ssltekshe</a> asdf</span>
@@ -72,7 +72,7 @@ array:
    "address": address.toString(16)
 }
  */
-function buildData(data) {
+function buildData(data, context) {
     // outer thing data
     d3.select("#valueName")
         .text(data.name)
@@ -87,8 +87,8 @@ function buildData(data) {
     if (data.values || data.fields) {
         startDepth = -1;
     }
-    console.log("data", data);
-    const flatData = rollupData(data, "", startDepth, false);
+
+    const flatData = rollupData(data, "", startDepth, "", false);
     console.log("flatData", flatData);
 
     const rows = tbody.selectAll("tr")
@@ -100,29 +100,29 @@ function buildData(data) {
         .append("tr")
     ;
 
-    newRows.append("th")
-        .html(d => "&nbsp;&nbsp;".repeat(d.depth) + d.name)
+    var nameCells = newRows.append("th")
+        .html(d => "&nbsp;&nbsp;".repeat(d.depth))
+    ;
+
+    // nameCells.filter(d => d.value.fields || d.value.values)
+    //     .append("a")
+    //     .style("font-weight", "bold")
+    //     .text("- ")
+    //     .attr("href", "#")
+    // ;
+    //
+    // nameCells.filter(d => !d.value.fields && !d.value.values)
+    //     .append("a")
+    //     .html("&nbsp;&nbsp;")
+    // ;
+
+    nameCells
+        .append("span")
+        .text(d => d.name)
         .attr("title", d => d.typeName + " @ 0x" + d.address.toUpperCase())
 
     // Value cells
-    var valueCells = newRows.append("td");
-
-    var pointerValueCells = valueCells.filter(d => d.typeName.endsWith("*"));
-
-    pointerValueCells.filter(d => d.value === 0)
-        .text(d => "NULL")
-        ;
-
-    pointerValueCells.filter(d => d.value !== 0)
-        .append("a")
-        .attr("href", d => d.path)
-        .text(d => "0x" + d.value.toString(16).toUpperCase())
-    ;
-
-    // nonpointer value cells
-    valueCells.filter(d => !d.typeName.endsWith("*"))
-        .text(d => d.value)
-    ;
+    var valueCells = newRows.append(d => makeValueCell(d, context));
 
 
     // breakpoint stuff will go here
@@ -132,8 +132,35 @@ function buildData(data) {
 
 }
 
+function makeValueCell(d, context) {
+    const td = d3.select(document.createElement("td"));
 
-function rollupData(d, prefix, depth, includeParent) {
+    const parentTypeFormatter = valueFormatters[d.parentType + "." + d.name];
+    const typeFormatter = valueFormatters[d.typeName];
+    if (parentTypeFormatter !== undefined) {
+        parentTypeFormatter(td, d.value, undefined, context);
+    } else if (typeFormatter !== undefined) {
+        typeFormatter(td, d.value, undefined, context);
+    } else if (d.typeName.endsWith("*")) {
+        if (d.value.value === 0) {
+            td.text("NULL");
+        } else {
+            td.append("a")
+                .attr("href", d.path)
+                .text("0x" + d.value.value.toString(16).toUpperCase())
+            ;
+        }
+    } else if (d.value.value === undefined) {
+        td.text(d.typeName);
+    } else {
+        td.text(d.value.value);
+    }
+
+    return td.node();
+}
+
+
+function rollupData(d, prefix, depth, parentType, includeParent) {
     includeParent = includeParent ?? true;
     var parent = [];
 
@@ -147,13 +174,20 @@ function rollupData(d, prefix, depth, includeParent) {
                     "path": includeParent ? prefix + "/" + d.name : d.name,
                     "address": d.address,
                     "typeName": d.typeName,
-                    "value": d.value,
+                    "parentType": parentType,
+                    "value": d,
                     "depth": depth
                 }
             ];
         }
         return parent.concat(d.values.flatMap(val =>
-            rollupData(val, prefix === "" ? d.name : prefix + "/" + d.name, depth + 1, true)
+            rollupData(
+                val,
+                prefix === "" ? d.name : prefix + "/" + d.name,
+                depth + 1,
+                d.typeName.replace("*", "").replace("[]", ""),
+                true
+            )
         ));
     } else if (d.fields) {
         // object
@@ -165,7 +199,8 @@ function rollupData(d, prefix, depth, includeParent) {
                     "path": includeParent ? prefix + "/" + d.name : d.name,
                     "address": d.address,
                     "typeName": d.typeName,
-                    "value": d.value,
+                    "parentType": parentType,
+                    "value": d,
                     "depth": depth
                 }
             ];
@@ -174,7 +209,13 @@ function rollupData(d, prefix, depth, includeParent) {
             d3.values(d.fields)
                 .sort((a, b) => d3.ascending(parseInt(a.address, 16), parseInt(b.address, 16)))
                 .flatMap(field =>
-                    rollupData(field, prefix === "" ? d.name : prefix + "/" + d.name, depth + 1, true)
+                    rollupData(
+                        field,
+                        prefix === "" ? d.name : prefix + "/" + d.name,
+                        depth + 1,
+                        d.typeName.replace("*", "").replace("[]", ""),
+                        true
+                    )
                 )
         );
 
@@ -184,7 +225,8 @@ function rollupData(d, prefix, depth, includeParent) {
             "path": prefix + "/" + d.name,
             "address": d.address,
             "typeName": d.typeName,
-            "value": d.value,
+            "parentType": parentType,
+            "value": d,
             "depth": depth
         }];
     }
@@ -205,6 +247,6 @@ function buildBreadcrumbs(data) {
 
         .append("a")
         .text(d => d.fieldName)
-        .attr("href", d => "/data/" + d.path)
+        .attr("href", d => "/data" + d.path)
     ;
 }

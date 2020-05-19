@@ -1,4 +1,4 @@
-function cmActorList() {
+function actorMap() {
     return d3.tsv(
         "/static/cm_actor_list.tsv",
         function tsv_parse_row(d) {
@@ -11,7 +11,9 @@ function cmActorList() {
                 used: d.used
             }
         }
-    );
+    ).then(function (cmActorList) {
+        return d3.map(cmActorList, d => d.id)
+    });
 }
 
 function documentReady() {
@@ -29,40 +31,47 @@ function actorDisplayName(actorMap, id) {
 
 // some way to also specify whether it's collapsed or not by default?
 const valueFormatters = {
-    "Actor.id": function (value, parent, context) {
-        const cell = d3.select($("div"));
+    "Actor.id": function (td, value, parent, context) {
+        console.log("context", context);
+        console.log(arguments);
         const id = value.value;
-        cell.append("span")
+        td.append("span")
             .text(id + " 0x" + id.toString(16))
         ;
 
         var displayName = actorDisplayName(context.actorMap, id)
         if (displayName !== "") {
-            cell.append("div")
+            td.append("div")
                 .append("small")
                 .text(displayName)
             ;
         }
-        return cell;
     },
-    "Vec3f": function (value, parent, context) {
-        return d3.select($("div"))
-            .text(vectorString(value, 2));
+    "Vec3f": function (td, value, parent, context) {
+        td.text(vectorString(value, 2));
     },
-    "Vec3s": function (value, parent, context) {
-        return d3.select($("div"))
-            .text(vectorString(value, 0));
+    "Vec3s": function (td, value, parent, context) {
+        td.text(vectorString(value, 0));
     },
-    "PosRot": function (value, parent, context) {
-        return d3.select($("div"))
-            .text(vectorString(value.fields.pos, 2) + " and a rot");
+    "PosRot": function (td, value, parent, context) {
+        td.text(vectorString(value.fields.pos, 2) + " " + rotationString(value.fields.rot, 2));
     }
 };
 
-function vectorString(value, digits)
-{
-    return "(" + value.fields.x.value.toFixed(digits) + ", "
-        + value.fields.y.value.toFixed(digits) + ", "
-        + value.fields.z.value.toFixed(digits)
+function vectorString(value, digits) {
+    return "(" + (value.fields.x.value || 0).toFixed(digits) + ", "
+        + (value.fields.y.value || 0).toFixed(digits) + ", "
+        + (value.fields.z.value || 0).toFixed(digits)
+        + ")";
+}
+
+function rotationToAngle(rot) {
+    return ((rot || 0) / 32768 * 360)
+}
+
+function rotationString(value, digits) {
+    return "(" + rotationToAngle(value.fields.x.value).toFixed(digits) + ","
+        + rotationToAngle(value.fields.y.value).toFixed(digits) + ","
+        + rotationToAngle(value.fields.z.value).toFixed(digits)
         + ")";
 }

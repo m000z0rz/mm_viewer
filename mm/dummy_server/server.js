@@ -7,6 +7,6 @@ const {
 } = require("./fake_api.js")("nofilenameyet");
 
 const mm_script = _fs.readFileSync("../../mm.js").toString();
-const basePath = "."
+Server.hack_basePath = "."
 process.chdir("../..");
 eval(mm_script);

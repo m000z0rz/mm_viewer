@@ -43,6 +43,16 @@ const structTypes = [
         "name": "Camera",
         "fields": [
             {
+                "name": "unk4",
+                "typeName": "Vec3f",
+                "offset": 0x004
+            },
+            {
+                "name": "unk20",
+                "typeName": "Vec3f",
+                "offset": 0x020
+            },
+            {
                 "name": "focalPoint",
                 "typeName": "Vec3f",
                 "offset": 0x050,
@@ -51,6 +61,16 @@ const structTypes = [
                 "name": "eye",
                 "typeName": "Vec3f",
                 "offset": 0x05C,
+            },
+            {
+                "name": "upDir",
+                "typeName": "Vec3f",
+                "offset": 0x068
+            },
+            {
+                "name": "unk74",
+                "typeName": "Vec3f",
+                "offset": 0x074
             },
             {
                 "name": "player",
@@ -284,11 +304,13 @@ const structTypes = [
             {
                 "name": "loadedRamAddr",
                 "typeName": "void*",
+                "offset": 0x10,
             },
             // 	/* 0x14 */ ActorInit* initInfo;
             {
                 "name": "name",
                 "typeName": "char*",
+                "offset": 0x18,
             }
             // 	/* 0x1C */ u16 allocType; // bit 0: don't allocate memory, use actorContext->0x250? bit 1: Always keep loaded?
             // 	/* 0x1E */ s8 nbLoaded; // original name: "clients"
