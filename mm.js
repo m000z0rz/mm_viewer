@@ -1,10 +1,22 @@
 
-if (typeof(basePath) === undefined)
+var basePath;
+if (Server.hack_basePath === undefined) // Smuggle in a different path for the dummy server on the Server object
 {
     basePath = "./Scripts";
 }
+else
+{
+    basePath = Server.hack_basePath;
+}
 // This is the main script to place in Proejct64's Scripts directory
 
+function dumpFile()
+{
+    var fd = fs.open(basePath + "/mm/dummy_server/savestate.bin", "w");
+    console.log(fs.write(fd, mem.getblock(0x80000000, 0x800000)));
+    fs.close(fd);
+    //console.log(fs.writeFile(basePath + "/mm/dummy_serversavestate.bin", mem.getblock(0x80000000, 0x800000))); // save cached RDRAM
+}
 
 // **************************** Imports *******************************************
 
@@ -429,7 +441,7 @@ function getData() {
     }
 
     return ret;
-};
+}
 
 function makeActor(actorAddress) {
     var id = mem.u16[actorAddress + 0x00];

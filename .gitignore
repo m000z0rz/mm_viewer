@@ -1,4 +1,5 @@
 .idea/
 mm/static/cm_actor_list.tsv
+mm/dummy_server/savestate.bin
 mm/html/test.html
 __pycache__
