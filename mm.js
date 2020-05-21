@@ -1,6 +1,9 @@
+// This is the main script to place in Project 64's Scripts directory
 
+// Get the base path. When running in Project 64, that's ./Scripts. When testing on linux using a dummy server,
+//  we smuggle in the base path to use on the Server object
 var basePath;
-if (Server.hack_basePath === undefined) // Smuggle in a different path for the dummy server on the Server object
+if (Server.hack_basePath === undefined)
 {
     basePath = "./Scripts";
 }
@@ -8,20 +11,19 @@ else
 {
     basePath = Server.hack_basePath;
 }
-// This is the main script to place in Proejct64's Scripts directory
+
 
 function dumpFile()
 {
     var fd = fs.open(basePath + "/mm/dummy_server/savestate.bin", "w");
     console.log(fs.write(fd, mem.getblock(0x80000000, 0x800000)));
     fs.close(fd);
-    //console.log(fs.writeFile(basePath + "/mm/dummy_serversavestate.bin", mem.getblock(0x80000000, 0x800000))); // save cached RDRAM
 }
 
 // **************************** Imports *******************************************
 
 // some setup is required in PJ64 source for Duktape to provide require
-// For now, we use a makeshift version
+// For now, we use a makeshift version of it to import other files
 var makeshift_require = (function () {
     const module_exports = {};
 
@@ -191,7 +193,7 @@ function routeFavicon(client, request) {
 
 
 
-// **************************** Template *******************************************
+// **************************** HTML Template *******************************************
 
 function breadcrumbs(path)
 {
@@ -328,18 +330,6 @@ function valueAt(address, type, name) {
     return asType(buf, type, name, address);
 }
 
-//
-// const basic_type_reads = {
-// 	"u8": "getUint8",
-// 	"s8": "getInt8",
-// 	"u16": "getUint16",
-// 	"s16": "getInt16",
-// 	"u32": "getUint32",
-// 	"s32": "getInt32",
-// 	"f32": "getFloat32",
-// 	"*": "u32"
-// };
-//
 function asType(buffer, type, name, address) {
     // add special handling for char* here, assuming it's null string
 
@@ -407,7 +397,7 @@ function asType(buffer, type, name, address) {
 }
 
 
-// **************************** MM *******************************************
+// **************************** Map Data *******************************************
 
 function getData() {
     var globalContextAddress = mem.u32[0x801BD8C0];
