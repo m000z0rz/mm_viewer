@@ -23,6 +23,11 @@ function documentReady() {
 
 function actorDisplayName(actorMap, id) {
     const d = actorMap.get(id);
+    if (d === undefined)
+    {
+        return "";
+    }
+
     if (d.description !== "") return d.filename + " / " + d.description;
     if (d.translation !== "") return d.filename + " / " + d.translation;
 

@@ -221,8 +221,8 @@ const fs = {
 }
 
 module.exports = function api(saveStateFilename) {
-    //const {memory, buf, offset} = fakeMemory();
-    const {memory, buf, offset} = memoryFromFile("savestate.bin");
+    const {memory, buf, offset} = fakeMemory();
+    //const {memory, buf, offset} = memoryFromFile("savestate.bin");
 
 
     return {
