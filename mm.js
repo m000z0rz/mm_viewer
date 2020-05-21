@@ -145,7 +145,7 @@ function routeIndexPage(client, request) {
 
 function routeActorMapJSON(client, request) {
     // Map data
-    http.jsonResponse(client, getData());
+    http.jsonResponse(client, getMapData());
 }
 
 function routeGlobalVariablesPage(client, request) {
@@ -229,9 +229,14 @@ function templateResponse(client, name, pageModel) {
 
 
 // **************************** Data getting stuff *******************************************
+function getDataFromPath(path, params)
+{
+    const dp = followDataPath(path, params);
+    return valueAt(dp.offset, dp.type, dp.name);
+}
 
 // path something like actorCutscenesGlobalCtxt/actorCtx/actorList[0]
-function getDataFromPath(path, params) {
+function followDataPath(path, params) {
 
     // console.log("getDataFromPath path", path);
     // console.log("getDataFromPath params", params);
@@ -308,9 +313,15 @@ function getDataFromPath(path, params) {
         }
     });
 
+    return {
+        "offset": offset,
+        "type": type,
+        "name": lastLocation
+    };
+
     //return [offset, type];
     // offset should now point to the thing we want, and type should be the appropriate type
-    return valueAt(offset, type, lastLocation);
+    // return valueAt(offset, type, lastLocation);
 }
 
 function memArrayBuffer(address, size) {
@@ -399,70 +410,73 @@ function asType(buffer, type, name, address) {
 
 // **************************** Map Data *******************************************
 
-function getData() {
-    var globalContextAddress = mem.u32[0x801BD8C0];
-    var actorContextAddress = globalContextAddress + 0x01CA0;
-    var actorListEntriesTableAddress = actorContextAddress + 0x10;
-
+function getMapData() {
+    const dp = followDataPath("actorCutscenesGlobalCtxt/actorCtx/actorList");
+    const actorListEntriesTableAddress = dp.offset;
+    // const ActorListEntry = dp.type();
+    // const aleSize = ActorListEntry.size();
+    const aleSize = 0xC;
+    // const globalContextAddress = mem.u32[global_variables.byName.actorCutscenesGlobalCtxt.offset];
+    // const Actor = types.typeMap.Actor;
+    // var actorContextAddress = globalContextAddress + Actor.fields.actorCtx.offset; + 0x01CA0;
+    // var actorListEntriesTableAddress = actorContextAddress + 0x10;
 
     mem.f32 = mem.float;
     mem.f64 = mem.double;
 
-    ret = [];
+    const actorLists = [];
 
+    // for each actorListEntry[i]
     for (var i = 0; i < 12; i++) {
-        var actorListEntryAddress = actorListEntriesTableAddress + 0xC * i;
-        var actorCount = mem.s32[actorListEntryAddress];
+        const actorListEntryAddress = actorListEntriesTableAddress + aleSize * i;
+        const actorCount = mem.s32[actorListEntryAddress];  // length
         if (actorCount === 0)
             continue;
 
-        var actorAddress = mem.u32[actorListEntryAddress + 0x4];
+        var actorAddress = mem.u32[actorListEntryAddress + 0x4]; // first
 
-        objs = [];
-        //str += actorCount + " of:\n";
+        const actors = [];
         for (var actorIndex = 0; actorIndex < actorCount; actorIndex++) {
-            var actor = makeActor(actorAddress)
-            objs.push(actor);
+            const actor = actorMapData(actorAddress);
+            actor.listPath = {
+                "listIndex": i,
+                "nextDepth": actorIndex
+            };
+            actors.push(actor);
 
             actorAddress = mem.u32[actorAddress + 0x12C]; // next
         }
 
-        ret.push(objs);
+        actorLists.push(actors);
     }
 
-    return ret;
+    return actorLists;
 }
 
-function makeActor(actorAddress) {
-    var id = mem.u16[actorAddress + 0x00];
-    var currPosRotAddress = actorAddress + 0x24;
-    var speedXZ = mem.f32[actorAddress + 0x70];
-    var sqDistanceFromLink = mem.f32[actorAddress + 0x98];
-    var textId = mem.u16[actorAddress + 0x116];
-
-
-    if (id === 649) {
-        //mem.f32[currPosRotAddress + 0x4] += 10.0;
-        mem.s16[currPosRotAddress + 0xC + 0x2] += 100.0;
-    }
+function actorMapData(actorAddress) {
+    const currPosRotAddress = actorAddress + 0x24;
+    // var speedXZ = mem.f32[actorAddress + 0x70];
+    // var sqDistanceFromLink = mem.f32[actorAddress + 0x98];
+    // var textId = mem.u16[actorAddress + 0x116];
 
     return {
-        id: id,
-        currPosRot: makeCurrPosRot(currPosRotAddress),
-        speedXZ: speedXZ,
-        sqDistanceFromLink: sqDistanceFromLink,
-        textId: textId
+        id: mem.u16[actorAddress + 0x00],
+        address: actorAddress,
+        currPosRot: posRotMapData(currPosRotAddress),
+        // speedXZ: speedXZ,
+        // sqDistanceFromLink: sqDistanceFromLink,
+        // textId: textId
     };
 }
 
-function makeCurrPosRot(address) {
+function posRotMapData(address) {
     return {
-        pos: makeVec3f(address + 0x0),
-        rot: makeVec3s(address + 0xC)
+        pos: vec3f(address + 0x0),
+        rot: vec3s(address + 0xC)
     };
 }
 
-function makeVec3f(address) {
+function vec3f(address) {
     return {
         x: mem.f32[address + 0x0],
         y: mem.f32[address + 0x4],
@@ -470,7 +484,7 @@ function makeVec3f(address) {
     };
 }
 
-function makeVec3s(address) {
+function vec3s(address) {
     return {
         x: mem.s16[address + 0x0],
         y: mem.s16[address + 0x2],

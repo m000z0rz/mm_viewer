@@ -382,8 +382,8 @@ function Type(typeName, fields, size, basicReadFunction) {
         this.basicReadFunction = basicReadFunction;
     }
 
-    // special bottom types
     if (typeName === "char*" || typeName === "void*") {
+        // special bottom types
         this.name = typeName;
     } else {
         if (typeName.indexOf("[") !== -1) {
