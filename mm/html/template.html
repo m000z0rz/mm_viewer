@@ -17,9 +17,14 @@
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 
+    <!--Font Awesome-->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css" rel="stylesheet" />
+    <!--<link href="/static/fontawesome/css/all.css" rel="stylesheet">load all styles --> -->
+    <!--<link href="/static/fontawesome/css/all.min.css" rel="stylesheet"> load all styles -->
+    <!--<script defer src="/your-path-to-fontawesome/js/all.js"></script> load all styles -->
     <style>
         .full-vh {
-            max-height: calc(100vh - 4rem);
+            height: calc(100vh - 4rem);
             /*max-height: 100%;*/
             overflow-y: auto;
         }
@@ -39,18 +44,17 @@
         }
     </style>
 
-    <title>MM</title>
+    <title>Moon's Tear</title>
 
 </head>
 <body>
 
 <!-- Nav -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark stick-top">
-    <a href="#" class="navbar-brand">MM Viewer</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
+    <!--<a href="/" class="navbar-brand" aria-label="Moon's Tear"><img src="/static/favicon.png" width="36" height="36" ></a>-->
+    <a href="/" class="navbar-brand" aria-label="Moon's Tear">Moon's Tear</a>
+
+       <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
         <div class="navbar-nav">
             <a class="nav-item nav-link" href="/" data-name="map">Actor Map</a>
             <a class="nav-item nav-link" href="/data/" data-name="data">Data</a>
@@ -66,8 +70,22 @@
                     <a class="dropdown-item" href="#">Snowhead</a>
                 </div>
             </a>
+            <a class="nav-item nav-link" href="https://github.com/m000z0rz/mm_viewer">
+                <i class="fab fa-github"></i>
+            </a>
         </div>
     </div>
+
+    <div id="disconnectedBadge" style="position: absolute; display: none;">
+        <h3><span class="badge badge-danger">No Connection</span></h3>
+    </div>
+
+
+
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+    </button>
+
 </nav>
 
 {{INNER}}

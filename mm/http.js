@@ -24,6 +24,7 @@ const extensionToMimeType = {
     "json": "application/json",
     "tsv": "text/tab-separated-values",
     "png": "image/png",
+    "css": 	"text/css",
 };
 
 function fileResponse(client, path, contentType, callback)
