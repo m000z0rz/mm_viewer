@@ -14,6 +14,7 @@ Promise.all([actorMap(), documentReady()])
                 setTimeout(doRequest, requestDelay);
             }
         }
+
         ajax.onerror = function () {
             d3.select("#disconnectedBadge")
                 .style("display", undefined)
@@ -43,38 +44,33 @@ const svg = d3.select("#map")
 
 const g = svg.append("g");
 
-
 function drawPositions(data, actorMap) {
     // array of objects groups, which are arrays of objects
-    //console.log("data", data);
+    console.log("data", data);
 
-    // Assign key to each object based on their type id and index within their group
-
-    // Skip link in early data; we only use the camera one
-    data.forEach(group => {
-        group.forEach((obj, index) => {
-            obj.key = obj.id + ":" + index;
-        });
-    });
 
     data = data.flat();
 
-    //console.log("newdata", data);
-    //console.log("links", data.filter(d => d.id === 0).map(d => "(" + d.currPosRot.pos.x + ", " + d.currPosRot.pos.z + ")"));
-    const viewMinX = d3.min(data, d => d.currPosRot.pos.x - 20) || 0;
-    const viewMinY = d3.min(data, d => d.currPosRot.pos.z - 20) || 0;
-    const viewMaxX = d3.max(data, d => d.currPosRot.pos.x + 20) || 0;
-    const viewMaxY = d3.max(data, d => d.currPosRot.pos.z + 20) || 0;
+    // Assign key to each object based on its address in memory and its type id
+    data.forEach(a => {
+        a.key = a.address + "-" + a.id;
+    });
 
-    if (viewMinX === viewMaxX || viewMinY === viewMaxY) {
-        // nothing exists, skip the update, may have just died
+    const [xMin, xMax] = d3.extent(data, d => d.currPosRot.pos.x || 0);
+    const [yMin, yMax] = d3.extent(data, d => d.currPosRot.pos.z || 0);
+
+    if (xMin === xMax || yMin === yMax)
+    {
+        // nothign exists, skip the update
         return;
     }
 
+    const viewPadding = 50;
+    const xWidth = xMax - xMin;
+    const yHeight = yMax - yMin;
     svg.attr("viewBox", [
-        viewMinX, viewMinY, viewMaxX - viewMinX, viewMaxY - viewMinY
+        xMin - viewPadding, yMin - viewPadding, xWidth + viewPadding * 2, yHeight + viewPadding * 2
     ]);
-
 
     const radii = {
         16: 15 // make tatl smaller
@@ -104,6 +100,9 @@ function drawPositions(data, actorMap) {
         .style("fill", d => fillColors[d.id] || "grey")
         .attr("cx", d => d.currPosRot.pos.x)
         .attr("cy", d => d.currPosRot.pos.z)
+        .style("cursor", "pointer")
+        .on("click", d => { console.log(d); })
+        .on("mouseover", d => { console.log("mouseover", d); })
     ;
 
     newCircles
@@ -119,4 +118,16 @@ function drawPositions(data, actorMap) {
     circles.exit()
         .remove();
 }
+
+const openActorCards = [];
+function openActorCard(d)
+{
+
+}
+
+function closeActorCard(d)
+{
+
+}
+
 
