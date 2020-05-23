@@ -55,7 +55,7 @@ var makeshift_require = (function () {
 const types = makeshift_require(basePath + "/mm/definitions/types.js");
 const global_variables = makeshift_require(basePath + "/mm/definitions/global_variables.js");
 const http = makeshift_require(basePath + "/mm/http.js");
-
+const bp = makeshift_require(basePath + "/mm/breakpoints.js");
 
 
 
@@ -84,6 +84,13 @@ const routeTable = [
     ["/j/data/", routeGlobalVariablesJSON],
     ["/data/*", routeDataPage],
     ["/j/data/*", routeDataJSON],
+
+    ["/breakpoints", routeBreakpointsPage],
+    ["/j/breakpoints", routeBreakpointsJSON],
+    ["/breakpoints/add/*", routeBreakpointAdd],
+    ["/breakpoints/remove/*", routeBreakpointRemove],
+
+
     ["/static/*", routeStatic],
     ["/favicon.png", routeFavicon]
 ];
@@ -181,12 +188,55 @@ function routeDataJSON(client, request) {
     http.jsonResponse(client, getDataFromPath(request.subPath, request.params));
 }
 
+function routeBreakpointsPage(client, request)
+{
+    const model = bp.getBreakpointsData();
+    templateResponse(client, "breakpoints", model);
+}
+
+function routeBreakpointsJSON(client, request)
+{
+    http.jsonResponse(client, bp.getBreakpointsData());
+}
+
+function routeBreakpointAdd(client, request)
+{
+    const pathPieces = request.path.split("\n");
+    const t = pathPieces[pathPieces.length - 1];
+    // request.path;
+    // request.params;
+    const type = request.params.type;
+    const address = request.params.address;
+    const actor = request.params.actor;
+    bp.addBreakpoint(type, address, actor);
+    http.jsonResponse(client, {
+       "breakpointCount": bp.breakpointCount()
+    });
+}
+
+function routeBreakpointRemove(client, request)
+{
+    const pathPieces = request.path.split("\n");
+    const id = pathPieces[pathPieces.length - 1];
+    const success = bp.removeBreakpoint(id);
+
+    http.jsonResponse(client, {
+        "success": success,
+        "breakpointCount": bp.breakpointCount()
+    });
+}
+
+
+
+
+
 function routeStatic(client, request) {
     http.fileResponse(client, basePath + "/mm/static/" + request.subPath);
 }
 
 function routeFavicon(client, request) {
-    http.fileResponse(client, basePath + "/mm/static/favicon.png");
+    //http.fileResponse(client, basePath + "/mm/static/favicon.png");
+    http.notFoundResponse(client);
 }
 
 
@@ -216,7 +266,9 @@ function templateResponse(client, name, pageModel) {
     const inner = fs.readFile(innerFilename).toString();
 
     var model = {
-        "nav": undefined,
+        "nav": {
+            "breakpointCount": bp.breakpointCount()
+        },
         "page": pageModel
     };
 
