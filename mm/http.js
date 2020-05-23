@@ -38,11 +38,12 @@ function fileResponse(client, path, contentType, callback)
     const buffer = fs.readFile(path);
     if (!buffer)
     {
+        console.log("404 on file ", path);
         notFoundResponse(client, callback);
     }
     else
     {
-        httpResponse(client, buffer.toString(), contentType, 200, callback);
+        httpResponse(client, buffer, contentType, 200, callback);
     }
 }
 
@@ -72,11 +73,14 @@ function httpResponse(client, data, contentType, code, callback)
         "HTTP/1.1 " + code + " " + httpResponseType[code] + "\r\n"
         + "Content-type: " + contentType + "\r\n"
         + "Content-length: " + data.length + "\r\n"
+        //+ "Content-Encoding: identity" + "\r\n"
         + "Access-Control-Allow-Origin: *\r\n"
         + "\r\n"
         + data
         ,callback
     );
+
+
 }
 
 

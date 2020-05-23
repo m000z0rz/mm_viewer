@@ -28,7 +28,7 @@ function documentReady() {
 
 function hex(number)
 {
-    var hexed = number.toString().toUpperCase();
+    var hexed = number.toString(16).toUpperCase();
     if (hexed.length % 2 === 1)
     {
         hexed = "0" + hexed;

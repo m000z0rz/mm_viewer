@@ -42,6 +42,10 @@
         td {
             padding-left: 10px;
         }
+
+        .bp-table td {
+            padding: 10px
+        }
     </style>
 
     <title>Moon's Tear</title>
@@ -58,8 +62,8 @@
         <div class="navbar-nav">
             <a class="nav-item nav-link" href="/" data-name="map">Actor Map</a>
             <a class="nav-item nav-link" href="/data/" data-name="data">Data</a>
-            <a class="nav-item nav-link" href="#" data-name="breakpoints">Breakpoints <span class="badge badge-secondary">x</span></a>
-            <a class="nav-item dropdown">
+            <a class="nav-item nav-link" href="/breakpoints" data-name="breakpoints">Breakpoints <span id="breakpointCount" class="badge badge-secondary">.</span></a>
+            <a class="nav-item dropdown disabled">
                 <a class="nav-link dropdown-toggle" href="#" id="warpDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                     Warp
                 </a>
@@ -76,7 +80,7 @@
         </div>
     </div>
 
-    <div id="disconnectedBadge" style="position: absolute; display: none;">
+    <div id="disconnectedBadge" style="display: none;">
         <h3><span class="badge badge-danger">No Connection</span></h3>
     </div>
 
@@ -92,11 +96,20 @@
 
 <!-- jQuery first, then Popper.js, then Bootstrap JS -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-<script>$("a.nav-link[data-name='{{NAME}}']").toggleClass("active", true);</script>
+<script>
+    let m = {{MODEL}};
+    $("a.nav-link[data-name='{{NAME}}']").toggleClass("active", true);
+    let bpc = m.nav.breakpointCount;
+    d3.select("#breakpointCount")
+        .text(bpc)
+        .classed("badge-danger", bpc > 0)
+        .classed("badge-secondary", bpc === 0)
+    ;
+</script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
 <script src="/static/common.js"></script>
-<script>var m = {{MODEL}};</script>
+
 {{SCRIPT}}
 
 </body>
