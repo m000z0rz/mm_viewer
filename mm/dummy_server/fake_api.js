@@ -147,16 +147,16 @@ function mem(memory, buf, littleEndian) {
         'double': new Proxy({},
             {
                 get: function (obj, prop) {
-                    prop = parseInt(prop) + offset;
+                    prop = parseInt(prop);
                     return memory.getFloat64(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
+                    prop = parseInt(prop);
                     memory.setFloat64(prop, val, littleEndian);
                 }
             }),
         getblock: function (address, size) {
-            address = parseInt(address) + offset;
+            address = parseInt(address);
             return buf.slice(address, address + size);
         }
         // getstring: function(address, maxLen)
