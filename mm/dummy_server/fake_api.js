@@ -3,123 +3,156 @@ const _fs = require("fs");
 
 function fakeMemory() {
     const buf = new ArrayBuffer(0xFFFFFFFF);
-    return {
-        "memory": new DataView(buf),
-        "buf": buf,
-        "offset": 0
-    };
+    return mem(new DataView(buf), buf, 0x00, false);
+}
+
+function getUint32(buf, offset)
+{
+    const dv = new DataView(buf);
+    return dv.getUint32(offset, true);
+}
+
+function get4bytes(buf, offset)
+{
+    const dv = new DataView(buf);
+    var str = ""
+    for (var i = 0; i < 4; i++)
+    {
+        str += hex(dv.getUint8(offset + i)) + " ";
+    }
+    return str
+}
+
+function hex(num)
+{
+    const str = num.toString(16).toUpperCase();
+    if (str.length % 2 === 0)
+    {
+        return str;
+    }
+    else
+    {
+        return "0" + str;
+    }
+
 }
 
 function memoryFromFile(path) {
-    // const buf = new ArrayBuffer(0xFFFFFFFF);
-    // const arr = new Uint8Array(buf.buffer, buf.byteOffset, buf.length);
+     const buf = new ArrayBuffer(0xFFFFFFFF);
 
-    // copy in the cached RDRAM we aved to file
-    //const memory = new Uint8Array(buf);
-    //const saved = new Uint8Array(_fs.readFileSync(path));
-    // const saved = new _fs.readFileSync(path);
-    // arr.set(saved, 0x80000000, 0x0020000);
-    const buf = _fs.readFileSync(path).buffer;
+    const rdram_size = 0x00800000
+    const rdram_offset_in_save_state = 0x75C;
+    const kseg0 = 0x80000000
 
-    return {
-        "memory": new DataView(buf),
-        "buf": buf,
-        "offset": 0x80000000
+    // copy in the cached RDRAM we have to file
+    const memory = new Uint8Array(buf, kseg0, rdram_size);
+    const filebuf = _fs.readFileSync(path);
+    const glooffset = (0x801BD8C0 - 0x80000000);
 
-    };
+    for (var j = 0; j < rdram_size; j += 4)
+    {
+        memory[j + 0] = filebuf[rdram_offset_in_save_state + j + 3];
+        memory[j + 1] = filebuf[rdram_offset_in_save_state + j + 2];
+        memory[j + 2] = filebuf[rdram_offset_in_save_state + j + 1];
+        memory[j + 3] = filebuf[rdram_offset_in_save_state + j + 0];
+    }
 
+    return mem(new DataView(buf), buf, 0x00, false);
 }
 
 const u8 = 'u8', u16 = 'u16', u32 = 'u32',
     s8 = 's8', s16 = 's16', s32 = 's32',
     float = 'float', double = 'double'
 
-function mem(memory, buf, offset) {
-    offset = offset || 0;
+function mem(memory, buf, littleEndian) {
+    littleEndian = !!littleEndian;
     return {
         u8: new Proxy({},
             {
                 get: function (obj, prop) {
-                    return memory.getUint8(prop + offset);
+                    prop = parseInt(prop);
+                    return memory.getUint8(prop);
                 },
                 set: function (obj, prop, val) {
-                    memory.setUint8(prop + offset, val);
+                    prop = parseInt(prop);
+                    memory.setUint8(prop, val);
                 }
             }),
         u16: new Proxy({},
             {
                 get: function (obj, prop) {
-                    return memory.getUint16(prop + offset);
+                    prop = parseInt(prop);
+                    return memory.getUint16(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    memory.setUint16(prop + offset, val);
+                    prop = parseInt(prop);
+                    memory.setUint16(prop, val, littleEndian);
                 }
             }),
         u32: new Proxy({},
             {
                 get: function (obj, prop) {
-                    prop = parseInt(prop) + offset;
-                    return memory.getUint32(prop);
+                    prop = parseInt(prop);
+                    return memory.getUint32(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
-                    memory.setUint32(prop, val);
+                    prop = parseInt(prop);
+                    memory.setUint32(prop, val, littleEndian);
                 }
             }),
         s8: new Proxy({},
             {
                 get: function (obj, prop) {
-                    prop = parseInt(prop) + offset;
+                    prop = parseInt(prop);
                     return memory.getInt8(prop);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
+                    prop = parseInt(prop);
                     memory.setUint8(prop, val);
                 }
             }),
         s16: new Proxy({},
             {
                 get: function (obj, prop) {
-                    prop = parseInt(prop) + offset;
-                    return memory.getUint16(prop);
+                    prop = parseInt(prop);
+                    return memory.getUint16(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
-                    memory.setUint16(prop, val);
+                    prop = parseInt(prop);
+                    memory.setUint16(prop, val, littleEndian);
                 }
             }),
         s32: new Proxy({},
             {
                 get: function (obj, prop) {
-                    prop = parseInt(prop) + offset;
-                    return memory.getUint32(prop);
+                    prop = parseInt(prop);
+                    return memory.getUint32(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
-                    memory.setUint32(prop, val);
+                    prop = parseInt(prop);
+                    memory.setUint32(prop, val, littleEndian);
                 }
             }),
         'float': new Proxy({},
             {
                 get: function (obj, prop) {
-                    console.log("float", prop, offset, parseInt(prop) + offset);
-                    prop = parseInt(prop) + offset;
-                    return memory.getFloat32(prop);
+                    prop = parseInt(prop);
+                    return memory.getFloat32(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
-                    prop = parseInt(prop) + offset;
-                    memory.setFloat32(prop, val);
+                    prop = parseInt(prop);
+                    memory.setFloat32(prop, val, littleEndian);
                 }
             }),
         'double': new Proxy({},
             {
                 get: function (obj, prop) {
                     prop = parseInt(prop) + offset;
-                    return memory.getFloat64(prop);
+                    return memory.getFloat64(prop, littleEndian);
                 },
                 set: function (obj, prop, val) {
                     prop = parseInt(prop) + offset;
-                    memory.setFloat64(prop, val);
+                    memory.setFloat64(prop, val, littleEndian);
                 }
             }),
         getblock: function (address, size) {
@@ -221,12 +254,10 @@ const fs = {
 }
 
 module.exports = function api(saveStateFilename) {
-    const {memory, buf, offset} = fakeMemory();
-    //const {memory, buf, offset} = memoryFromFile("savestate.bin");
-
+    const mem = memoryFromFile("saves/s3.pj");
 
     return {
-        "mem": mem(memory, buf, -offset),
+        "mem": mem,
         "Server": Server,
         "fs": fs
     }

@@ -510,7 +510,6 @@ function actorMapData(actorAddress) {
     // var speedXZ = mem.f32[actorAddress + 0x70];
     // var sqDistanceFromLink = mem.f32[actorAddress + 0x98];
     // var textId = mem.u16[actorAddress + 0x116];
-
     return {
         id: mem.u16[actorAddress + 0x00],
         address: actorAddress,
