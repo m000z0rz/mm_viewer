@@ -228,6 +228,12 @@ function closeActorCard(d)
 
 function updateActorCards(actorCardData, context)
 {
+    // first, process data
+    actorCardData.forEach(d => {
+        d.listPath.url = "/data/actorCutscenesGlobalCtxt/actorCtx/actorList/actorList[" + d.listPath.listIndex + "]/first"
+            + "/next".repeat(d.listPath.nextDepth);
+    });
+
     const actorCards = d3.select("#actorSidebar")
         .selectAll(".card")
         .data(actorCardData, d => d.key)
@@ -270,8 +276,7 @@ function ActorCardsEnter(cards, context)
 
     // popout link
     cardBodies.append("a")
-        .attr("href",d => "/data/actorCutscenesGlobalCtxt/actorCtx/actorList/actorList[" + d.listPath.listIndex + "]/first"
-            + "/next".repeat(d.listPath.nextDepth))
+        .attr("href", d => d.listPath.url)
         //.classed("float-left", true)
 
         .append("i")
@@ -347,7 +352,7 @@ function updateDataTable(tbodies, context)
     tbodies.each(function(d) {
         if (d.details !== undefined)
         {
-            buildDataRows(d3.select(this), d.details, context);
+            buildDataRows(d3.select(this), d.details, d.listPath.url, context);
         }
 
     })

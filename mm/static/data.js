@@ -16,7 +16,7 @@ Promise.all([actorMap(), documentReady])
                 .attr("title", "0x" + model.data.address.toString(16).toUpperCase())
             ;
 
-            buildDataRows(d3.select("#dataTableBody"), model.data, context);
+            buildDataRows(d3.select("#dataTableBody"), model.data, "", context);
         }
     });
 

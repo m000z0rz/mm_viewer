@@ -106,14 +106,14 @@ function rotationString(value, digits) {
 
 
 // Fields table ///////////////////////////////////////////////////////////////
-function buildDataRows(tbody, data, context) {
+function buildDataRows(tbody, data, pathPrefix, context) {
     // Roll up the hierarchical data to a flat array that we can build trs with
     var startDepth = 0;
     if (data.values || data.fields) {
         startDepth = -1;
     }
 
-    const flatData = rollupData(data, "", startDepth, "", false);
+    const flatData = rollupData(data, pathPrefix, startDepth, "", false);
 
     const rows = tbody.selectAll("tr")
         .data(flatData, d => d.path)
@@ -183,7 +183,7 @@ function rollupData(d, prefix, depth, parentType, includeParent) {
             parent = [
                 {
                     "name": d.name,
-                    "path": includeParent ? prefix + "/" + d.name : d.name,
+                    "path": prefix !== "" ? prefix + "/" + d.name : d.name,
                     "address": d.address,
                     "typeName": d.typeName,
                     "parentType": parentType,
