@@ -1,5 +1,7 @@
 .idea/
 mm/static/cm_actor_list.tsv
+mm/definitions/global_variables.json
+mm/definitions/overlay_functions.json
 mm/dummy_server/savestate.bin
 mm/dummy_server/saves
 mm/html/test.html

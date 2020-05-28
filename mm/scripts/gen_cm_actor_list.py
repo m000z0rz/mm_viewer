@@ -54,7 +54,7 @@ def make_actor_list(output_filename):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run mips_to_c on a set of assembly files and report crashes. Outputs TODO"
+        description="Generates a tsv file of actor names and translations by scraping data from cloudmodding"
     )
     parser.add_argument("output_filename", help="assembly files to check")
     args = parser.parse_args()
